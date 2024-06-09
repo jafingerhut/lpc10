@@ -25,4 +25,4 @@ unnuke2:	unnuke2.o bitio.o sampleio.o liblpc10.a
 	$(CC) -o $@ unnuke2.o bitio.o sampleio.o -L. -llpc10 -lm
 
 clean:
-	-rm -f *.o
+	-rm -f *.o liblpc10.a nuke unnuke nuke2 unnuke2
