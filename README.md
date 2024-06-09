@@ -73,10 +73,10 @@ I do not believe the Internet Archive has a copy of that file
 `lpc10-1.0.tar.gz` mentioned above, but I still have a copy of a file
 with that name that I believe is the same as what I retrieved from the
 FTP site above, and included that file in this repository in the
-`original-code` directory.  The time stamps on the files in that
-archive range from February 1990 until October 1993, which is earlier
-than my involvement with this code, so all of that was written by
-others.
+[`original-code`](original-code/) directory.  The time stamps on the
+files in that archive range from February 1990 until October 1993,
+which is earlier than my involvement with this code, so all of that
+was written by others.
 
 I started using RCS (Git had not yet been developed) to maintain my
 personal modifications to the files, and according to the time stamps
