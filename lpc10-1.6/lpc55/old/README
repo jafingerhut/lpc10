@@ -1,0 +1,72 @@
+	LPCSIM - Low rate voice coder
+	Version 54  13 March 1991
+
+   The lpcsim voice coder includes an LPC analyzer and synthesizer which
+convert between LPC parameters (pitch, voicing, energy, and spectrum)
+and speech, and coding routines that quantize the parameters at rates
+of 2400 bits per second and below.  It reads and writes speech data,
+LPC parameters, or bitstream data, using named files or stdin/out.  Its
+I/O and coding options are controlled by command line switches.
+
+ Usage: lpcsim ifile ofile
+   [-is/ip/ib]   - input speech/params/bits
+   [-os/op/ob]   - output speech/params/bits
+   [-pb]         - binary parameter file
+   [-l #]        - verbosity level (# = 0-6)
+   [-order #]    - LPC order
+   [-q 0/2400]   - quantization rate
+
+OPTIONS:
+
+* ifile, ofile are the input and output filenames. If ifile is '-' input
+  is taken from stdin, and if ofile is '-' output is sent to stdout.
+  If ofile is not present, no output is produced.
+
+* -is, -ip, -ib:  input is speech, LPC parameters, or bitstream.
+  -os, -op, -ob:  output is speech, parameters, or bitstream.
+
+    Speech data consists of headerless files of 16 bit two's-complement
+    linear samples at 8 kHz sample rate.
+
+    LPC parameters are in text format, one line per frame, in 14 columns:
+    Energy in dB, 2 half-frame voicing decisions (0=unvoiced, 1=voiced),
+    pitch lag in samples, and 10 reflection coefficients.
+
+    Bitstream data is in hexadecimal format, 1 line per frame; not
+    applicable for unquantized parameters.  Bit 1 is the rightmost
+    (least significant) bit and bit 54 is the leftmost.
+
+    The input and output options determine whether the analyzer, synthesizer,
+    both, or neither are run.  This is useful for speeding up processing,
+    or limiting debugging data to just the analyzer or synthesizer.
+
+* -pb: LPC parameters are in binary rather than text format. This is an
+    efficiency hack for realtime processing.  The -pb switch has no effect
+    on speech or bitstream format.
+
+* -l #: This switch (lower-case L) controls the amount of debugging data
+    printed, in increasing levels of verbosity from 0 (none) to 6 (dump
+    all internal buffers).  The default value of 1 prints processing
+    options and statistics.
+
+* -order #: controls the LPC filter order. This has not been tested at
+    other than its default value of 10, and will definitely not work if
+    parameters are quantized.
+
+* -q: Parameter quantization option.  Recognized values are 0 (unquantized),
+    and 2400 (LPC-10e 2400 bps scalar quantization at 54 bits per frame).
+
+
+EXAMPLES
+
+ lpcsim foo.spd foo_2400.spd
+    Use defaults for all processing options: speech in and out, 2400 bps
+    quantization, print processing summary only.
+
+ errgen -h 54 -e 1.0 foo.lpb | lpcsim -ib - - | play -n
+    Add 1% random errors to 2400 bps bitstream file 'foo.lpb', pipe the
+    corrupted bitstream file into lpcsim, and listen to the results.
+    (Play -n refers to a locally modified version of the Sun Sparcstation
+    play command that can play 16 bit samples.  The lpc simulator runs
+    about 50% of realtime on a Sparcstation-2 for speech in and out, so
+    realtime listening is possible on a lightly loaded machine.)

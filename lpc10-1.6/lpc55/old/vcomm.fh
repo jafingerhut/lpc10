@@ -1,0 +1,15 @@
+c $Log: vcomm.fh,v $
+c Revision 1.1  1996/02/07  14:50:14  jaf
+c Initial revision
+c
+
+c   Voicing coefficient and Linear Discriminant Analysis variables:
+c Max number of VDC's and VDC levels
+
+      integer maxvdc, mxvdcl
+      parameter (maxvdc = 10, mxvdcl = 10)
+
+c Actual number of VDC's and levels
+
+      integer nvdc, nvdcl
+      real vdc(maxvdc, mxvdcl), vdcl(mxvdcl)

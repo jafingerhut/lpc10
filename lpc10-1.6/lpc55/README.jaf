@@ -1,0 +1,197 @@
+Notes on using the LPC-10 coder inside an application
+----------------------------------------------------------------------
+
+When I used the LPC-10 coder in Nautilus, I ran the modified Fortran
+code through f2c, and then copied the resulting C source code into the
+Nautilus source distribution, except for the files containing unneeded
+functions, which are sread.f, spdio.c, and bitio.f.  These files just
+define I/O functions that were not used in Nautilus, and probably
+wouldn't be needed in most other applications that use the LPC-10
+coder.
+
+Then I added a modified version of the header file f2c.h, included
+with f2c, modified to make certain integer types the correct number of
+bits.  See below for more details on the sizes needed.
+
+I copied 3 library functions from the f2c distribution.  These are
+pow_ii.c, r_sign.c, and i_nint.c from the libF77 library.  These are
+the only library routines needed for the subroutines LPCINI, LPCENC,
+and LPCDEC.
+
+After that, it was just a matter of making C wrapper functions for
+LPCINI, LPCENC, and LPCDEC.  The wrapper for LPCINI didn't do anything
+other than the one function call.  The wrappers for LPCENC and LPCDEC
+did some conversion of samples between integers and reals, since
+LPCENC and LPCDEC expect speech to be an array of reals in the range
+[-1,+1].
+
+
+Modifications needed to f2c.h
+----------------------------------------------------------------------
+
+When f2c is run on the source (at least with the options I chose in
+the Makefile), here are the types of the resulting variables in the
+C code.
+
+Fortran type	C type in f2c output
+------------	--------------------
+INTEGER		integer
+INTEGER*2	shortint
+REAL		real
+LOGICAL		logical
+
+These types are defined as follows in the header file f2c.h, included
+in the f2c distribution.
+
+typedef long int integer;	/* used extensively */
+typedef char *address;		/* unused in converted LPC-10 code */
+typedef short int shortint;	/* used in only a few places -- see below */
+typedef float real;		/* used extensively */
+typedef double doublereal;	/* used only as arguments to sqrt(), etc. */
+typedef struct { real r, i; } complex;			/* unused */
+typedef struct { doublereal r, i; } doublecomplex;	/* unused */
+typedef long int logical;				/* used occasionally */
+typedef short int shortlogical;				/* unused */
+typedef char logical1;					/* unused */
+typedef char integer1;					/* unused */
+
+In the places where INTEGER*2's are used (e.g., random.f, sread.f), it
+appears important that 16 bit arithmetic is done, not 32 bit
+arithmetic.
+
+It is probably true that 99% of the INTEGER's could be as small as 16
+bits with no problems.  However, there is at least one expression in
+bsynz.f that must be evaluated using 32 bit integer arithmetic.  There
+could be several other such expressions throughout the code.  I
+haven't checked for such things carefully.  I only noticed the one in
+BSYNZ because I was trying to determine what the expression meant.
+
+For REAL's, it shouldn't affect the functionality of the coder whether
+C float's or double's are used.  I used float's just because they are
+smaller.
+
+For LOGICAL's, the default type in f2c.h is "long int".  Some might
+cringe at using >= 32 bits for a single true/false value, but this
+type is not used very much in the code.  I went ahead and defined this
+type in Nautilus as a 32 bit integer.
+
+
+
+Andy's personal notes on other miscellaneous info about the coder,
+that probably aren't useful for anyone else (there is a subroutine
+calling tree at the end)
+----------------------------------------------------------------------
+
+Here is the sequence of functions called on a frame of speech samples
+to encode it.  It corresponds to the functions called when running
+lpcsim with a command line like "lpcsim -is speech.spd -ob
+speech.bits", except the routines for converting from the bits to
+hexadecimal are left out.  This is what Nautilus should do for such a
+frame.
+
+A frame in the LPC10 coder is 180 samples.  For each frame, it encodes
+it as 54 bits.  There are (8000/180)=44.4444... frames per second.  To
+put this into Nautilus, what would be a good number of frames to send
+in each Nautilus "packet"?  8 would be reasonable, since the encoded
+result would be a whole number of bytes.
+
+        integer MAXFRM, MAXORD, MAXPIT, MAXNB
+        parameter (MAXFRM = 180, MAXORD = 10, MAXPIT = 156)
+	parameter (MAXNB = 320)
+
+	INTEGER VOICE(2), PITCH
+	REAL RMS, RC(MAXORD), SPEECH(MAXFRM+MAXPIT)
+
+*       Currently the size of the frames, LFRAME, is set to MAXFRM,
+*       which is set to 180.  I wonder what the restrictions might be
+*       on other values that this code will work for?
+
+*	I believe that this assignment to LFRAME is performed in one
+*	of the setup routines.
+
+        CALL PREPRO(SPEECH, LFRAME)
+	    CALL HP100( SPEECH, 1, LENGTH )
+                Run a high-pass filter over the speech.
+        CALL ANALYS(SPEECH, VOICE, PITCH, RMS, RC)
+	    Calls many subroutines.  See below for a call tree.
+	CALL TRANS(VOICE, PITCH, RMS, RC, EOF)
+	    integer ipitv, irms, irc(MAXORD), ibits(MAXNB)
+	    call encode(voice, pitch, rms, rc, ipitv, irms, irc)
+	    call chanwr(order, ipitv, irms, irc, ibits)
+                It appears that this is mostly doing bit manipulations.
+                Perhaps a good candidate for hand-coding in C?
+                Unfortunately, it probably doesn't spend much time here anyway.
+
+
+Here is the sequence of functions called on a frame of quantized
+encoded speech to produce the decoded speech samples.  It corresponds
+to the functions called when running lpcsim with a command line like
+"lpcsim -ib speech.bits -os speech.spd", except for interpreting the
+hexadecimal input file.  This is what Nautilus should do for each
+input frame of encoded speech before playing it.
+
+	CALL TRANS(VOICE, PITCH, RMS, RC, EOF)
+	    call chanrd(order, ipitv, irms, irc, ibits)
+	    call decode(ipitv, irms, irc, voice, pitch, rms, rc)
+	CALL SYNTHS(VOICE, PITCH, RMS, RC, SPEECH, LEN)
+	    Calls several subroutines, but not nearly as many
+	    as ANALYS().  See below for call tree.
+
+
+
+lpcsim (main program)
+	sread (calls STOP!)
+	swrite (calls STOP!)
+	SETUP (calls STOP!)
+		vqversion
+		getcl
+			get_sarg
+			getarg
+		vqgetcl
+		getcl_intr
+		getcl_bit
+		getcl_parm
+		vqusage
+		vqsetup
+		vqdone
+		spd_close
+	FRAME
+	PREPRO (local state, but only in HP100, not PREPRO itself.  Entry INITPREPRO created.)
+		HP100 (local state, entry INITHP100 created.)
+	ANALYS (local state.  Entry INITANALYS created.)
+		PREEMP (functional.)
+		ONSET (local state.  Entry INITONSET created.)
+		PLACEV (functional)
+		LPFILT (functional)
+		IVFILT (functional)
+		TBDM (functional)
+			DIFMAG (functional)
+		VOICIN (local state, entry INITVOICIN created)
+			VPARMS (functional)
+		DYPTRK (local state, entry INITDYPTRK created)
+		PLACEA (functional)
+		DCBIAS (functional)
+		ENERGY (functional)
+		MLOAD (functional)
+		INVERT (functional)
+		RCCHK (functional)
+	TRANS (no local state of its own, but chanwr and decode do have local state)
+		ENCODE (functional)
+		CHANWR (local state, but it need not be reinitialized)
+		PITDEC (functional)
+		BITSRD (only called if data input is bits file)
+			GETHX (CALLS STOP!)
+		BITSWR (only called if data output is bits file)
+			PUTHX
+		CHANRD (functional)
+		DECODE (local state, entry INITDECODE created)
+			HAM84 (functional, only called if CORRP is .TRUE.)
+			MEDIAN (functional, only called if CORRP is .TRUE.)
+	SYNTHS (no local state of its own, but subroutines PITSYN, BSYNZ, and DEEMP have local state, so created entry INITSYNTHS.)
+		PITSYN (local state, entry INITPITSYN created.)
+		IRC2PC (functional.)
+		BSYNZ (local state, entry INITBSYNZ created.)
+			RANDOM (local state, but it need not be reinitialized.)
+		DEEMP (local state, entry INITDEEMP created.)
+	WRAPUP
+	EXIT

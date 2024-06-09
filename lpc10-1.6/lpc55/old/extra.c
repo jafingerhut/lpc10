@@ -1,0 +1,117 @@
+/*
+ * Sun Feb 11 20:58:17 CST 1996
+ * Andy Fingerhut (jaf@arl.wustl.edu)
+ *
+ * I believe that this file was written by Bill Dorsey, because these
+ * functions were called from the LPC-10 code, but were not present in
+ * the libraries available to him.  They weren't available to me
+ * either, when I tried to compile this code on my Linux machine using
+ * f2c and gcc, so I'm copying it.
+ *
+ * $Log: extra.c,v $
+ * Revision 1.5  1996/02/13  18:59:41  jaf
+ * I tried removing the "#ifdef sun" wrapper around the definitions of
+ * the functions etime_ and time_, because I thought it might fix a
+ * problem on Solaris where lpcsim was printing values on the order of
+ * 1000's of seconds of elapsed time, when I expected something about
+ * 1/1000'th of the value printed.  I might work more on fixing this
+ * later.
+ *
+ * Revision 1.4  1996/02/13  00:06:23  jaf
+ * I removed the conditional inclusion of <sys/rusage.h>.  On the Solaris
+ * 5.3 machine I have access to, this include file is only available in
+ * the BSD compatibility include files /usr/ucbinclude and the BSD
+ * compatibility libraries /usr/ucblib/libucb.a.
+ *
+ * Revision 1.3  1996/02/12  03:18:57  jaf
+ * Added the definition of function time_(), which is just a call to the
+ * GNU C library time() function, at least on my Linux machine.  More
+ * #ifdef'ing will likely be needed to make this file more portable.
+ *
+ * Revision 1.2  1996/02/12 03:04:30  jaf
+ * I just added a conditional inclusion of the file <sys/rusage.h>, when
+ * compiling on a Sun machine.  I did this some time ago, and have
+ * forgotten the exact problems that I had when trying to compile without
+ * it.  I do know that I was trying to compile it on a Solaris 5.3
+ * machine.  It might be better if the #ifdef was more particular to this
+ * operating system, instead of all Sun machines.
+ *
+ * I also commented out the definition for lnblnk_, because I have
+ * already written a Fortran definition for this function in lnblnk.c.
+ *
+ * Revision 1.1  1996/02/12 03:01:47  jaf
+ * Initial revision
+ *
+ **/
+
+#include <stdio.h>
+#include <time.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+
+#include "f2c.h"
+
+
+itime_(iarray)
+	integer iarray[3];
+{
+	time_t	clock;
+	struct tm *ltime;
+
+	clock = time(NULL);
+	ltime = localtime(&clock);
+	iarray[0] = ltime->tm_hour;
+	iarray[1] = ltime->tm_min;
+	iarray[2] = ltime->tm_sec;
+}
+
+
+/*#ifndef sun*/
+real
+etime_(tarray)
+	real tarray[2];
+{
+	struct rusage rusage;
+
+	getrusage(RUSAGE_SELF, &rusage);
+	tarray[0] = rusage.ru_utime.tv_sec + rusage.ru_utime.tv_usec / 1000000.;
+	tarray[1] = rusage.ru_stime.tv_sec + rusage.ru_stime.tv_usec / 1000000.;
+	return tarray[0] + tarray[1];
+}
+
+
+integer time_(void)
+{
+	return time(0);
+}
+/*#endif*/
+
+
+/*
+lnblnk_(s, flen)
+	char *s;
+	integer flen;
+{
+	int i;
+
+	for (i=flen-1; i>=0; i--)
+		if (s[i] != ' ')
+			break;
+
+	return i+1;
+}
+*/
+
+
+char *
+fdate_(s, flen)
+	char s[24];
+	integer flen;
+{
+	time_t	clock;
+
+	clock = time(NULL);
+	return strncpy(s, ctime(&clock), min(24, flen));
+}

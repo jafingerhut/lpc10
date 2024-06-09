@@ -1,0 +1,20 @@
+c $Log: config.fh,v $
+c Revision 1.1  1996/02/07  14:43:51  jaf
+c Initial revision
+c
+
+c   LPC Configuration parameters:
+c Frame size, Prediction order, Pitch period, Bits per block
+
+	integer MAXFRM, MAXORD, MAXPIT, MAXNB
+	parameter (MAXFRM = 180, MAXORD = 10, MAXPIT = 156)
+	parameter (MAXNB = 320)
+
+c  Unix constants
+
+	integer STDIN, STDOUT, STDERR
+	integer FSTDIN, FSTDOUT, FSTDERR
+	integer O_RDONLY, O_WRONLY, O_RDWR
+	parameter (STDIN=0, STDOUT=1, STDERR=2)
+	parameter (FSTDIN=5, FSTDOUT=6, FSTDERR=0)
+	parameter (O_RDONLY=0, O_WRONLY=1, O_RDWR=2)

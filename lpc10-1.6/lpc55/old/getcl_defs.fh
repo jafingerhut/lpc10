@@ -1,0 +1,17 @@
+* $Log: getcl_defs.fh,v $
+* Revision 1.1  1996/02/07  14:46:51  jaf
+* Initial revision
+*
+
+	integer FLEN, SLEN, IS_SWITCH, IS_VALUE, IS_PARM
+	integer MATCHED, AMBIGUOUS, DUPLICATE, RANGE, BADNUM
+	parameter (FLEN=100)
+	parameter (SLEN=400)
+	parameter (IS_SWITCH=1, IS_VALUE=2, IS_PARM=4)
+	parameter (MATCHED=8, AMBIGUOUS=16, DUPLICATE=32)
+	parameter (RANGE=64, BADNUM=128)
+
+	integer argc, sargc
+	integer*2 lx(2,FLEN), flag(FLEN)
+	character*(SLEN) line
+	common /getcl_defs/ argc, sargc, lx, flag, line

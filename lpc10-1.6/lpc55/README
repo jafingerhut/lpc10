@@ -1,0 +1,188 @@
+April 2, 1996
+
+This code is somewhat modified from the original LPC-10 code that I
+obtained from:
+
+ftp://ftp.super.org/pub/speech/lpc10-1.0.tar.gz
+
+If you want to create an executable called lpcsim that is like the one
+that the LPC-10 distribution above creates, you should be able to move
+all of the files in the subdirectory "old" to this directory, and run
+make.
+
+The main changes are:
+
+1.
+
+The Release 1.0 version of the decoding routine SYNTHS could return a
+variable number of samples.  I was able to determine that in any N
+calls to SYNTHS, the total number of samples returned would always be
+in the range N*MAXFRM-MAXPIT+1 to N*MAXFRM, where MAXFRM=180 is the
+number of samples in each frame, and MAXPIT=156 is the maximum pitch
+period handled by the analysis routines.  Thus, it was relatively easy
+to change SYNTHS so that on the first call it always returns silence,
+and on every call after that, it returns exactly 180 samples.  This
+causes 1 extra frame (22.5 ms) of delay, but for the application in
+which I was interested in using the coder, it was worth the extra
+convenience of always returning a constant number of samples.
+
+(For anyone curious, my application of interest is called Nautilus, a
+program for encrypted voice conversations by modem or the Internet.
+See http://www.lila.com/nautilus/ if you are interested.)
+
+2.
+
+Created a Makefile for use with GNU make, f2c and gcc.  See comments
+near the beginning for what should be changed for your machine.  I'll
+probably make one that doesn't depend on GNU make features some time
+in the future.  Feel free to submit improvements.
+
+There are comments in there on some sections that I made for a Linux
+Intel machine, Solaris, and SunOS 4.1.4.  You might want to start from
+one of these.
+
+3.
+
+Changed a few of the intrinsic functions used to ones implemented by
+the f2c Fortran to C conversion package, available from:
+
+ftp://netlib.att.com/netlib/f2c/
+
+See also the file README.f2c for tips on compiling f2c itself, at
+least for the few systems that I've compiled it on, and on the options
+to the f2c command that I've chosen to use for converting the LPC-10
+Fortran source files to C.
+
+4.
+
+Classified all local variables either as ones that should be saved
+from one invocation to the next, corresponding to local variables in C
+functions declared as "static", or as ones that need not be saved,
+which were either constants, or corresponded to automatic local
+variables in C.  The reason for this is documentation, and to
+accomplish the next item.
+
+5.
+
+Added subroutines to reinitialize all saved local variables in
+subroutines.  This makes it easy for someone to put the encoder or
+decoder back into their original states, although in practice this
+might not be such a big deal.  This is because most of the
+reinitialized local state would be "shifted away" in 2 or 3 frame
+times (22.5 ms for each frame), and the rest of it would have its
+effect "decay" away after about 100-200 frame times.
+
+What can I say, I'm anal retentive about such things.  When I
+mentioned this to a friend of mine named Rob Jackson, he said, "Anal
+retentiveness is God's gift to programmers." :-)
+
+6.
+
+Commented out debugging and error logging statements.  Made several
+arrays in synths.f and pitsyn.f larger, and added lots of comments
+explaining why they are now large enough that they will never
+overflow.  Wrote simple-to-use subroutines LPCINI, LPCENC, and LPCDEC,
+and sample main programs that use them in nuke.f (compression) and
+unnuke.f (decompression).
+
+The distributed version had lots of options for reading in speech
+samples, speech parameter data, or 2400 bps coded speech, and also
+writing out any of these formats after passing through the necessary
+levels of compression and decompression.  The somewhat modified source
+files for these are in the subdirectory "old".
+
+7.
+
+Wrote some documentation for how to include the coder in an
+application written in C.  See the file README.jaf.
+
+
+Wish list
+---------
+
+1.
+
+Tue Aug 20 15:52:26 CDT 1996
+Andy Fingerhut (jaf@arl.wustl.edu)
+
+This item is now done!  It was done by taking the C program output of
+f2c on the Fortran code and hand-modifying it.  See the lpc55-C
+directory in this package for the code.
+
+
+In an application where multiple audio streams are being encoded or
+decoded interleaved in time with each other, it would be very
+convenient to have all state that is currently spread across several
+subroutines bundled up into one big C struct (I don't know of a
+corresponding thing in Fortran 77).  A pointer to this structure could
+be passed as an argument to the subroutines.  A program could have
+more than one such structure, and choose which one to pass in on each
+call to the encoder or decoder.  I believe that the only way to
+achieve this is to go to a non-portable extension of Fortran 77, to
+Fortran 90, or to C.  I'm not planning on doing this terribly soon,
+but if you want to, it should be a lot easier to do it starting from
+this code than from the Fortran code in Release 1.0.  If you do this,
+I'd appreciate it if you would let me know.
+
+
+1b.
+
+There is some experimental LPC code that I discovered from reading RFC
+1890, that is available at:
+
+ftp://parcftp.xerox.com/pub/net-research/lpc.tar.Z
+
+The README file there describes the interface to those routines, which
+is similar to what I describe above.  In addition, they have a "speed"
+parameter to the decoder, so that the compressed speech may be decoded
+to a different rate than the original.
+
+Other speech coding software is also mentioned at the end of RFC 1890,
+which can be obtained at:
+
+ftp://ds.internic.net/rfc/rfc1890.txt
+
+2.
+
+I don't remember where on the web I saw it right now, but some company
+has some speech coding software that they claim lets you separate the
+parameters that describe the particular voice of the speaker, from the
+parameters that describe the words being spoken.  I got the impression
+that these could then be mixed and matched.  You could take sentence 1
+spoken by speaker A, and sentence 2 spoken by speaker B, and run it
+through their software.  The result could be played out as sentence 1
+spoken by speaker B, and sentence 2 spoken by speaker A.  I have never
+tried it before, so I don't know if it sounds very good or not.
+Still, it's a cool idea.  I don't know if the analysis and synthesis
+routines are in any way similar to the LPC-10 coder or not.
+
+If anyone knows where to find this again, please let me know.
+
+
+3.
+
+Of course it would be nice if the coder ran faster, or produced better
+quality speech, or produced more highly compressed speech.  I'm not
+going to work on any of these, except perhaps to try to make it run
+faster.  Given the profiling results I've seen so far, there doesn't
+look like a lot of opportunity for simple improvements to me.
+
+Tue Aug 20 15:54:22 CDT 1996
+Andy Fingerhut (jaf@arl.wustl.edu)
+
+I've looked at this a little bit more, and the only noticeable
+improvement that I found was to add the -R option in the f2c code, to
+prevent the Fortran intrinsic functions ABS(), MIN(), and MAX() from
+promoting REAL's to DOUBLE REAL's (or C float's to double's).  This
+only saved a noticeable amount of time in the encoding routine DIFMAG.
+
+
+
+Andy Fingerhut
+Applied Research Laboratory                     <-- this line is optional if
+Washington University, Campus Box 1045/Bryan 509      you have limited space
+One Brookings Drive
+Saint Louis, MO 63130-4899
+ 
+jaf@arl.wustl.edu
+http://www.arl.wustl.edu/~jaf/
