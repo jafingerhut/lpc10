@@ -28,6 +28,29 @@ this repository was derived appears to have been published in October
 
 # Compiling the code
 
+Tested on the following systems:
+
++ Ubuntu 20.04 aarch64 with GCC 9.4.0
+
+```bash
+git clone https://github.com/jafingerhut/lpc10
+cd lpc10/lpc10-1.6/lpc55-C/lpc10
+make
+cd ..
+make
+```
+
+If all went well, there should be executables with these names in the
+directory `lpc10-1.6/lpc55-C`:
+
++ `nuke`
++ `unnuke`
++ `nuke2`
++ `unnuke2`
+
+
+# Testing the code
+
 TODO
 
 
