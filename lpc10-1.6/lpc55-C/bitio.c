@@ -83,7 +83,7 @@ int
 read_bits(FILE *f, INT32 *bits, int len)
 {
     int             i;		/* generic loop variable */
-    int             c;
+    int             c = 0;
 
     /* Unpack the array bits into coded_frame. */
     for (i = 0; i < len; i++) {
