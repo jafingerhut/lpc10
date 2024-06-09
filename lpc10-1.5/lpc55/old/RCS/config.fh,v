@@ -1,0 +1,40 @@
+head	1.1;
+access;
+symbols;
+locks; strict;
+comment	@c @;
+
+
+1.1
+date	96.02.07.14.43.51;	author jaf;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@c $Log$
+
+c   LPC Configuration parameters:
+c Frame size, Prediction order, Pitch period, Bits per block
+
+	integer MAXFRM, MAXORD, MAXPIT, MAXNB
+	parameter (MAXFRM = 180, MAXORD = 10, MAXPIT = 156)
+	parameter (MAXNB = 320)
+
+c  Unix constants
+
+	integer STDIN, STDOUT, STDERR
+	integer FSTDIN, FSTDOUT, FSTDERR
+	integer O_RDONLY, O_WRONLY, O_RDWR
+	parameter (STDIN=0, STDOUT=1, STDERR=2)
+	parameter (FSTDIN=5, FSTDOUT=6, FSTDERR=0)
+	parameter (O_RDONLY=0, O_WRONLY=1, O_RDWR=2)
+@

@@ -1,0 +1,82 @@
+#! /bin/sh
+
+# 
+# Convert a sound file (either the Sun byte order for 16 bit samples,
+# with a suffix of .spd, or the Linux byte order, with a suffix of
+# .dsp), to a .bits file (my own made-up suffix for the output of
+# lpcsim when using the -ob option for the output file).
+# 
+
+if test $# -ne 1 -a $# -ne 2
+then
+	echo "Usage: `basename $0` 16-bit-audio-file [ lpcsim-exec ]" 1>&2
+	exit 1
+fi
+
+INPUT_SOUND=$1
+ARCH=`arch`
+
+LPCSIM_EXEC=lpcsim
+if test $# -eq 2
+then
+	LPCSIM_EXEC=$2
+fi
+
+case $ARCH in
+sun4)
+	;;
+i486)
+	;;
+*)
+	echo "Unknown machine architecture: $ARCH" 1>&2
+	echo "Expecting one of: sun4 i486" 1>&2
+	exit 1
+	;;
+esac
+
+
+TEMP_FILE=
+
+if test `basename $INPUT_SOUND` != `basename $INPUT_SOUND .dsp`
+then
+	LPCSIM_OUTPUT=`basename $INPUT_SOUND .dsp`.bits
+	case $ARCH in
+	sun4)
+		TEMP_FILE=$INPUT_SOUND-$$
+		echo "Converting .dsp input file to temporary .spd file $TEMP_FILE..."
+		dd conv=swab < $INPUT_SOUND > $TEMP_FILE
+		LPCSIM_INPUT=$TEMP_FILE
+		;;
+	i486)
+		LPCSIM_INPUT=$INPUT_SOUND
+		;;
+	esac
+elif test `basename $INPUT_SOUND` != `basename $INPUT_SOUND .spd`
+then
+	LPCSIM_OUTPUT=`basename $INPUT_SOUND .spd`.bits
+	case $ARCH in
+	sun4)
+		LPCSIM_INPUT=$INPUT_SOUND
+		;;
+	i486)
+		TEMP_FILE=$INPUT_SOUND-$$
+		echo "Converting .spd input file to temporary .dsp file $TEMP_FILE..."
+		dd conv=swab < $INPUT_SOUND > $TEMP_FILE
+		LPCSIM_INPUT=$TEMP_FILE
+		;;
+	esac
+else
+	echo "Missing or unknown file suffix" 1>&2
+	echo "Expecting one of: .dsp .spd" 1>&2
+	exit 1
+fi
+
+echo "Running the command:"
+echo "$LPCSIM_EXEC -is $LPCSIM_INPUT -ob $LPCSIM_OUTPUT"
+$LPCSIM_EXEC -is $LPCSIM_INPUT -ob $LPCSIM_OUTPUT
+
+if test x$TEMP_FILE != x
+then
+	echo "Deleting temporary file $TEMP_FILE."
+	rm -f $TEMP_FILE
+fi

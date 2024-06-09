@@ -1,0 +1,50 @@
+head	1.1;
+access;
+symbols;
+locks; strict;
+comment	@* @;
+
+
+1.1
+date	96.02.07.14.44.09;	author jaf;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@* $Log$
+
+*   LPC Processing control variables:
+*
+**** Read-only: initialized in setup
+*
+*  Files for Speech, Parameter, and Bitstream Input & Output,
+*    and message and debug outputs.
+*
+	integer fsi, fso, fpi, fpo, fbi, fbo, pbin, fmsg, fdebug
+
+*  LPC order, Frame size, Quantization rate, Bits per frame,
+*    Error correction
+
+	integer order, lframe, quant, nbits
+	logical corrp
+
+**** Read/write: variables for debugging, not needed for LPC algorithm
+*
+*  Current frame, Unstable frames, Output clip count, Max onset buffer,
+*    Debug listing detail level, Line count on listing page
+*
+	integer nframe, nunsfm, iclip, maxosp, listl, lincnt
+
+	common /contrl/ fsi, fso, fpi, fpo, fbi, fbo, pbin, fmsg, fdebug
+	common /contrl/ order, lframe, quant, nbits, corrp
+	common /contrl/ nframe, nunsfm, iclip, maxosp, listl, lincnt
+@

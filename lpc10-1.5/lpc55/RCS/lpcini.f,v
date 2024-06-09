@@ -1,0 +1,51 @@
+head	1.1;
+access;
+symbols;
+locks; strict;
+comment	@* @;
+
+
+1.1
+date	96.03.28.00.04.05;	author jaf;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@******************************************************************
+* 
+* $Log$
+* 
+******************************************************************
+* 
+* Initialize COMMON block variables used by LPC-10 encoder and decoder,
+* and call initialization routines for both of them.
+* 
+	SUBROUTINE LPCINI ()
+	INCLUDE 'config.fh'
+	INCLUDE 'contrl.fh'
+
+	ORDER = MAXORD
+	LFRAME = MAXFRM
+	CORRP = .TRUE.
+
+	CALL INITLPCENC ()
+	CALL INITLPCDEC ()
+
+*	LISTL = 6
+
+*	IF (LISTL.GE.2) THEN
+*	   OPEN(UNIT=FDEBUG, FILE='lpcdata', STATUS='unknown')
+*	END IF
+
+	RETURN
+	END
+@

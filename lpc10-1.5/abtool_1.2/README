@@ -1,0 +1,165 @@
+	A/B Tool: A program for comparing speech files.
+
+	        Version 1.2 - September 1993
+	    David P. Kemp  <dpkemp@alpha.ncsc.mil>
+
+	  Copyright 1993, U.S. Department of Defense
+
+
+
+  A/B Tool is a program for playing A/B comparisons between speech files.
+It generates the necessary segment boundaries on the fly, eliminating
+the need to create play scripts by hand.  A/B Tool scans files for gaps
+between segments of speech and compensates for delay between files.
+It can automatically play corresponding segments from multiple files
+in user-specified order, or it can play a single segment from one file
+at a time to allow critical comparisons.
+
+Usage:
+
+  The simplest usage of abtool is to start it with the desired
+files listed on the command line:
+
+   abtool *.spd
+or
+   abtool file_a file_b file_c ...
+
+and then press the "Play A/B" button.  This will scan the first file
+for segment boundaries, align the remaining files to the first, and
+play corresponding segments from each file in the order listed.
+
+Controls:
+
+  File / "Load SPD" - Pops up the file navigator, allowing the user to
+    open additional speech files.
+
+  File / "Load Seg"
+  File / "Save Seg" - Allows the user to load and save custom segment
+    boundaries.  **Not Yet Implemented**
+
+  "Audio..." - this starts up the Sun deskset application "audiocontrol",
+    for setting the volume, headphone/speaker port, etc.  An alternate
+    command can be specified in the properties sheet.
+
+  Drop Box - currently inoperative, but future versions may allow
+    drag 'n drop for opening files.
+
+  "Quit" - terminates abtool and any spawned application.
+
+  "Play A/B" - Plays an A/B comparison, as specified by the AB: and
+    Seg: fields.
+  "Stop" - while playing, the "Play A/B" button changes to "Stop",
+    which has the expected functionality.
+
+  "AB:" - Specifies the order in which segments are played.  There
+    can be up to 26 files open simultaneously, each identified by
+    a single letter.  For example, if 3 files are open, specifying
+    "abc" here would play them in order; "aba" would play a segment
+    from the first file, followed by the second, followed by a 
+    repeat of the first.  "cc" would play each segment from the
+    third file twice.  Letter identifiers are case-insensitive.
+
+  "Seg:" - Specifies the segment (or sentence) number to play.
+    If this field is 0, comparisons are played for all segments
+    in sequential order.  If this field is a valid segment number,
+    a single comparison for that segment is played.
+
+  "Segs:" - Displays the number of segments currently defined.  The
+    first file specified on the command line is automatically scanned
+    for segments, and segments can be recomputed with the "Segment"
+    command described below.
+
+  File List - The top part of the tool contains a list of open files,
+    identified by letter.  The user can select a file from this list
+    and bring up a menu with the following options:
+
+      "Play" - play the entire file.
+      "Close" - close the file.
+      "Graph" - display the file's energy in the plot window.
+      "Segment" - scan the file to define a new segment list.
+
+  Plot window - The bottom part of the tool contains a graph of
+    energy tracks, segmentation parameters, and segment boundaries.
+    **Not Yet Implemented**
+
+    To play an individual segment from one file, enter the segment
+    number in the "Seg:" field (above), then place the keyboard
+    focus in the plot window by clicking the mouse.  The specified
+    segment from particular files can be played by typing the file's
+    identifier letter.  This allows the user to repeat the segment
+    as many times as desired, for critical comparisons.
+
+    At any time, playing can be interrupted by pressing the "Stop"
+    button.  Typing a space (or other invalid character) in the plot
+    window will stop queueing any new data but allow the audio device
+    to finish playing whatever is already in the pipeline.
+
+  "Properties..." - Brings up a window containing additional controls
+    and information, as listed below:
+
+      "Graph" - selects RMS or Peak energy in the plot window.
+      "Time" - selects the time scale for energy plots.
+      "Auto Scale" - enables gain normalization during play.
+      "Gain" - allows modification of a file's play gain.
+      "Filenames" - hides filenames to allow blind comparisons.
+
+      "Ref:" - shows which file is the reference, i.e. the one which
+        was most recently segmented.  To segment a file, select it
+        in the File List (above), and choose Segment from the menu.
+      "File:" - shows which file is selected in the File List.
+
+      "Delay" - time delay between the reference and selected files.
+        The Segment command segments the reference file and then aligns
+        all other open files to it.  To show the alignment for a
+        particular file, select it from the File List.
+      "Max Delay" - maximum time delay (in both directions) over
+        which to search for the best alignment.
+      "Corr" - the best correlation found between the reference and
+        selected files.  If this is less than .9, the files may not
+        contain the same speech material, making A/B comparisons less
+        useful.
+
+      "Thresh:", "Gap:", and "Pad:" - segmentation parameters.
+        Segments are defined as an interval of signal with energy
+        (in dB) above the "Threshold", surrounded by intervals below
+        "Threshold" with a minimum duration specified by "Gap".  Segment
+        boundaries are placed "Pad"/2 ms. before and after the high-
+        energy interval.  To segment a file, set the desired parameters
+        here, select a file from the file list, select "Segment" from
+        the file list menu, and observe the "Segs" display to determine
+        how many segments were found.
+
+Audio Devices:
+
+  Abtool currently works with Sun audio devices: the 8 kHz 8 bit AMD
+device used in the Sparcstation 1/2/IPX, and the 16 bit programmable
+sample rate DBRI device used in the Sparcstation 10/LX.  Abtool will
+convert between encoding formats (linear and mu-law) on the fly, but
+it will not do sample rate conversion.  If a file does not have a valid
+Sun audiofile header, it is assumed to be 16 bit linear, 8 kHz, mono.
+Files of different encodings may be open simultaneously and will be
+properly translated.  Other devices may be specified in the "Audio I/O"
+choice, but this is currently ignored.
+
+  The "Hold/Release" switch determines whether the audio device is
+held open or closed when not in use.  If the device is held open, other
+audio applications (play, xbiff, etc) will not be able to access it.
+This may be desirable for critical listening or generating a recording.
+
+  Abtool does not do device control; use gaintool, audiotool, or
+audiocontrol to set the volume and select the desired output port(s).
+The "Audio..." button will spawn a copy of "audiocontrol"; an alternate
+command can be specified in the Properties sheet if desired.
+
+Possible enhancements:
+
+ * Support for additional audio devices (MTU, DAT-Link).
+ * File output, for generating comparison tapes.
+ * Adding silence between segments.
+ * Additional audio file encodings (float, 24/32/48 kbps ADPCM)
+
+Standard disclaimer:
+
+  Version 1.2 should still be considered beta software.  As far as I
+know it works correctly, but there is still a fair amount of work to
+do - most notably in the plot window. 

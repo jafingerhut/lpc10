@@ -1,0 +1,157 @@
+Tue Feb 13 10:47:25 CST 1996
+Andy Fingerhut (jaf@arl.wustl.edu)
+
+
+File formats:
+
+.au
+
+Sun/NeXT audio file format.  These have headers specifying the
+sampling rate, number of channels, sample format, and perhaps a few
+other things.
+
+.spd
+
+Extension of the sample audio files that came with the LPC10
+distribution.  They are raw audio data (i.e., no header), sampled at
+8000 samples/sec, 1 channel, where the samples are 16 bit 2's
+complement signed values, with the most significant byte first.  This
+appears to be the same as Sun's .au format with the same parameters,
+except that it doesn't have the .au header.
+
+.dsp
+
+An extension that appears to be common for Linux audio files, because
+the device name for recording and playing audio is /dev/dsp.  They are
+also raw audio data (i.e., no header).  They might have any of several
+sampling rates, numbers of channels, or sample formats.  When working
+with the LPC10 coder, it is desirable to use the same raw .spd format
+as the sample sound data files are.
+
+Unfortunately, when I have compiled the Fortran version of lpcsim
+using f2c and GCC on my Linux machine, it appears to expect 16 bit
+samples with the least significant byte first for input files
+specified with lpcsim's -is option, and to produce such files for
+output files specified with lpcsim's -os option.  This might have
+something to do with the "endian-ness" of the Sun machine architecture
+vs. the Intel machine architecture.
+
+Similarly, the programs srec and splay for recording and playing sound
+with 16 bit samples on Linux machines (using the -b 16 option of those
+commands) also use files in this byte order.  It is easy to convert
+between .spd and .dsp files using the following command to swap bytes
+(that it what the 'swab' abbreviation means):
+
+dd conv=swab < dam9.spd > dam9.dsp
+
+
+----------------------------------------------------------------------
+spd2au  - convert LPC10 .spd files to Sun .au files
+----------------------------------------------------------------------
+
+Example of use:
+
+spd2au < dam9.spd > dam9.au
+
+The shell script spd2au contains a command that may be used to convert
+the raw audio files used by the LPC10 coder (with extension .spd) to
+Sun format audio files (with extension .au), with the same sample
+format (8000 samples/sec, 1 channel, 16 bit linear samples encoded as
+2's complement signed numbers).
+
+It uses the program audioconvert, which is available on at least some
+Sun machines.  I have found it on siesta.wustl.edu, a Solaris 5.3
+machine, but not on leia.wustl.edu, which runs SunOS 4.1.4.  It might
+be merely a difference in the optional Sun software installed, rather
+than the OS version difference.
+
+I created this command, and then when I found that audioconvert
+doesn't exist on the machine on my desk, I dug a little deeper into
+what audioconvert actually does, and created playspd.  See the
+description for that command.  I leave this script around mostly for
+documentation purposes, and for others that can use it.
+
+
+----------------------------------------------------------------------
+playspd  - play LPC10 .spd file(s) on a Sun workstation
+----------------------------------------------------------------------
+
+Example of use:
+
+playspd dam9.spd dam9_lpc55.spd
+
+While siesta.wustl.edu has the audioconvert program, its audio speaker
+does not sit on my desk.  The audio speaker of leia.wustl.edu does.
+From my own simple testing, it appears that all the spd2au command
+above does is prepend the data with a 32 byte header, which is the
+same for all audio files with the same sampling rate, channels, and
+sample format.  Therefore, I put these 32 bytes into a file called:
+
+8khz-16bit-1channel-sun-au-header
+
+and created a small shell script called playspd that prepends this
+header to the raw audio samples, and pipes the output to the play(1)
+command available on Sun's.  This can be used to play the raw audio
+files on leia.wustl.edu, without having to go over the network to
+seista.wustl.edu, run audioconvert, copy the result back, and then
+play it.  Much more convenient.
+
+It would be even nicer to have one command that works on any of the
+file formats .dsp, .spd, and .au, distinguishing between them by their
+extensions (or, for .au files, by their "magic number", i.e., the
+first four bytes of the file), and for Linux, Solaris, and SunOS
+machines (using splay for Linux, and play for Solaris or SunOS, and
+using some environment variable or command to determine what kind of
+machine it is running on).  I'll probably do something like this in
+the near future.  That command could be called just 'play', or maybe
+some other name that isn't already taken.
+
+
+----------------------------------------------------------------------
+dump-spd  - show decimal values of LPC10 .spd file samples
+----------------------------------------------------------------------
+
+Example of use:
+
+dump-spd dam9.spd
+
+This command merely runs the GNU version of od with the appropriate
+options.
+
+Note: This command also appears to use the 'native' byte ordering of
+the machine on which it is run.  Running this command on a .spd file
+on a Sun machine produces the desired results, but running it on a
+.spd file on a Linux/Intel machine produces bad results (i.e., the
+2-byte words are interpreted in the wrong order).  It would be nice to
+have this command work on all desired machines with all of the .spd,
+.dsp, and .au extensions.
+
+It is becoming clear to me that a nice solution would be to make play
+and record programs for Linux that use Sun/NeXT .au files, with
+headers, and store 16-bit samples with the same byte order that Sun
+workstations do.  Then, I could also modify the lpcsim source code so
+that it used .au files, and performed byte-swapping internally (if
+necessary) on Linux/Intel machines.  This would mean that all audio
+files would be in the same format on both types of machine, and could
+be FTP'd between them with no harm done.  Plus, I wouldn't have to put
+case-checking code in all of these short little scripts to handle the
+different formats.
+
+
+----------------------------------------------------------------------
+s2bits - Compress a .spd or .dsp file with lpcsim to a .bits file
+----------------------------------------------------------------------
+
+Example of use:
+
+s2bits dam9.spd
+
+This script has a bit of case-checking code in it to determine what
+type of machine it is on, and to determine the extension of the input
+file.  It performs byte-swapping on the input file, if necessary, into
+a temporary file, and then runs lpcsim to produce a compressed
+bitstream file (using lpcsim's -ob option).
+
+If I modified lpcsim to accept .au files, all of this case checking
+would go into the LPC source code, and out of this script.  That would
+be nice.

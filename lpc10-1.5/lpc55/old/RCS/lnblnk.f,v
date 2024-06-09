@@ -1,0 +1,86 @@
+head	1.2;
+access;
+symbols;
+locks; strict;
+comment	@* @;
+
+
+1.2
+date	96.02.12.15.06.50;	author jaf;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	96.02.11.19.35.03;	author jaf;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.2
+log
+@Fixed a syntax error.  I really should compile these files _before_
+checking them in, to avoid stupid notes like this one.
+@
+text
+@************************************************************************
+*     
+*     LNBLNK
+*     
+*     Return the index of the last non-blank character in the argument
+*     string, or 0 if the string is all blanks or empty.
+*     
+*     Sun Feb 11 13:28:11 CST 1996
+*     Andy Fingerhut (jaf@@arl.wustl.edu)
+*     
+*     This function is called many times in the I/O parts of the LPC-10
+*     package.  It is probably in a standard library on the authors's
+*     home system.
+*     
+* $Log: lnblnk.f,v $
+* Revision 1.1  1996/02/11 19:35:03  jaf
+* Initial revision
+*
+*     
+************************************************************************
+
+      function lnblnk(str)
+      integer lnblnk
+      character*(*) str
+      integer i
+      logical done
+
+      i = len(str)
+      done = .false.
+      do while (.not. done)
+         if (i .gt. 0) then
+            if (str(i:i) .eq. ' ') then
+               i = i - 1
+            else
+               done = .true.
+            end if
+         else
+            done = .true.
+         end if
+      end do
+
+      lnblnk = i
+      end
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d15 4
+a18 1
+* $Log$
+d32 1
+a32 1
+            if (str(i) .eq. ' ') then
+@

@@ -1,0 +1,79 @@
+head	1.1;
+access;
+symbols;
+locks; strict;
+comment	@* @;
+
+
+1.1
+date	96.03.31.14.04.39;	author jaf;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@************************************************************************
+* 
+* $Log$
+* 
+************************************************************************
+
+
+	PROGRAM TEST
+	INCLUDE 'config.fh'
+	INCLUDE 'contrl.fh'
+
+*       Function return value definitions
+
+        INTEGER SWRITE, BITSRD
+
+*       Local variables
+
+	REAL SPEECH(MAXFRM)
+        INTEGER BITS(54)
+	INTEGER N
+
+*   Initialize the encoder and decoder
+
+	CALL LPCINI ()
+
+*	NFRAME = 0
+
+*   Process until end of file on input
+
+	DO WHILE(.TRUE.)
+
+*	   NFRAME = NFRAME + 1
+
+*   Read coded speech as ASCII hex digits
+
+*   Note that 5 is Fortran file unit number of standard input, because
+*   BITSRD uses Fortran file I/O routines.
+
+	   N = BITSRD(5, BITS, 54)
+           IF (N .NE. 54) GOTO 900
+
+*   Synthesize speech from received parameters
+
+*   Note that 1 is C file descriptor of standard input, because SWRITE
+*   uses C file I/O routines.
+
+
+           CALL LPCDEC(BITS, SPEECH)
+           N = SWRITE(1, SPEECH, LFRAME)
+ 
+	END DO
+
+*   Finished - wrap it up
+
+900     CALL EXIT(0)
+	END
+@

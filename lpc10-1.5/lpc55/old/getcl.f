@@ -1,0 +1,376 @@
+*************************************************************************
+*  Get Command Line Arguments
+*    Ver 1.1  D.P. Kemp  Mar 1988
+*    Ver 2.0  D.P. Kemp  Mar 1992
+*
+*  Command line elements are defined to be one of:
+*     switch     - identifier beginning with a dash
+*     value      - an alpha or numeric value following a switch
+*     parameter  - unnamed (or positional) parameter
+*
+* INITIALIZATION:
+*  One of the following must be called first:
+*    getcl()      - set up to get arguments from command line (argv)
+*    getcls(str)  - set up to get arguments from string
+*
+* SWITCHES:
+*  The following functions retrieve switches with no values. The function
+*  return value is 0 if the switch did not appear in the command, 1 if it
+*  did, or >1 if it appeared more than once.  The switch is matched as
+*  described below, and in getcl_ts(), the entire switch is returned in str.
+*
+*    getcl_t(arg)             - check for presence of switch ARG
+*    getcl_ts(arg, str)       - get entire switch
+*    getcl_bit(arg, map, bit) - logical or BIT into MAP if ARG present
+*
+* VALUES:
+*  The following functions retrieve switches with values, returning the
+*  count as above, or -1 if the switch appears with no value.
+*  If the switch and value do not appear, the values (n, r, or str) are
+*  not modified.  If a numeric range is specified, the switch value is
+*  clamped to be within the range.
+*
+*    getcl_str(arg, str)            - get character string value
+*    getcl_int(arg, n)              - get integer value
+*    getcl_real(arg,r)              - get real value
+*    getcl_intr(arg, n, nmin, nmax) - get int with range checking
+*    getcl_realr(arg,r, rmin, rmax) - get real with range checking
+*
+* PARAMETERS:
+*  The function getcl_parm returns positional parameters, numbered 1 to N,
+*  and always returns the total number of parameters N in the command.
+*  As noted above, any calls to getcl_parm MUST follow all calls to
+*  getcl_t and getcl_bit.
+*
+*    getcl_parm(n, str)   - get parameter n
+*
+* ERRORS:
+*  The function getcl_prerr checks for command line errors, and optionally
+*  prints error messages on fortran file 'unit'.  (Unit 0 is normally
+*  stderr and unit 6 is normally stdout).  If unit < 0, no messages are
+*  printed.  It's use is optional, but if called it should be after all
+*  the above routines.  The returned value is:
+*
+*  0 - OK        - no errors found while parsing command line
+*  1 - Unknown   - unrecognized switch or extra parameter
+*  2 - Ambiguous - a cmd line switch matched two or more valid switches
+*  3 - Repeated  - the same switch appeared more than once
+*  4 - Range     - a numeric value was outside it's valid range
+*  5 - Badnum    - an error occurred while reading a numeric value
+*
+*    getcl_prerr(unit)    - check for / print command line errors
+*
+* SWITCH SPECIFICATION:
+*  Switches can be specified either exactly or with the shortest unique
+*  prefix.  If the switch specifier (ARG, above) contains a colon (:),
+*  command line elements must match ARG exactly up to the colon, with any
+*  remaining characters interpreted as the switch value.  If ARG does not
+*  contain a colon, the command line element must match ARG up to the
+*  length of ARG, any remaining characters are ignored, and the following
+*  command line element is the switch value.
+*
+* EXAMPLE:
+*            cmd file1 -tr .3 -s8 -r(29.2:34.5) -v file2
+*
+*   -tr is a switch with value .3, -v is a switch with no value,
+*   and file1 and file2 are parameters 1 and 2.  The calling program
+*   specifies whether -s8 is interpreted as a single switch or as the
+*   switch -s with value 8.  The arbitrary string following the -r switch
+*   is returned for the calling program to parse.  The -v switch is is
+*   specified as valueless so that file2 is interpreted as the second
+*   positional parameter.
+*
+* $Log: getcl.f,v $
+* Revision 1.2  1996/02/12 15:04:09  jaf
+* Replaced calls to 'ior' with calls to 'or', so that it would compile
+* under f2c.
+*
+* Revision 1.1  1996/02/07 14:46:30  jaf
+* Initial revision
+*
+*
+*************************************************************************
+	subroutine getcl
+	include 'getcl_defs.fh'
+	integer i, k1, k2, iargc
+	character argv*2, b*1, str*(*)
+	data argc, sargc /0, 0/
+
+* Set up to retrieve elements from command line
+
+	argc = min(iargc(), FLEN)
+	sargc = 0
+	goto 100
+
+* Set up to retrieve elements from string 'str'
+*  Build index array SX containing starting and ending characters
+*  of each space-separated element
+
+	entry getcls(str)
+	line = str
+	sargc = 0
+	k1 = 0
+	do i = 1, min(len(str), len(line))
+	    if (str(i:i) .ne. ' ') then
+	        if (sargc .le. k1) then
+	            if (sargc .ge. FLEN) goto 100
+	            sargc = sargc + 1
+	            lx(1,sargc) = i
+	        end if
+	    else if (sargc .gt. k1) then
+	        lx(2,sargc) = i - 1
+	        k1 = sargc
+	    end if
+	end do
+	if (sargc .gt. k1) lx(2,sargc) = i - 1
+	if (sargc .le. 0) sargc = -1
+	argc = sargc
+
+* Set up internal flags to mark each element of argv as one of: switch,
+*  value, or parameter.  A dash by itself is a parameter; an element
+*  after a switch may be either a value or a parameter; the second
+*  element after a switch must be a parameter.
+
+100	k1 = 0
+	do i = 1, argc
+	    k2 = k1
+	    k1 = 0
+	    call get_sarg(i, argv)
+	    b = argv(2:2)
+	    if (argv(1:1).eq.'-' .and. ((b.ge.'a' .and. b.le.'z')
+     1          .or. (b.ge.'A' .and. b.le.'Z'))) k1 = IS_SWITCH
+	    flag(i) = k1
+	    if (k1 .eq. 0 .and. k2 .eq. 0) flag(i) = IS_PARM
+	end do
+	return
+	end
+
+*************************************************************************
+
+	function getcl_prerr(u)
+	include 'getcl_defs.fh'
+	integer i, n, u, lnblnk, getcl_prerr
+	character*16 argv, val
+
+	getcl_prerr = 0
+	do i = 1, argc
+	   if (and(flag(i), IS_SWITCH) .ne. 0) then
+	      call get_sarg(i, argv)
+	      n = lnblnk(argv)
+	      if (and(flag(i), MATCHED) .eq. 0) then
+	         getcl_prerr = 1
+	         if(u.ge.0) write(u,1) 'Unknown switch: ', argv(1:n)
+	      else if (and(flag(i), AMBIGUOUS) .ne. 0) then
+	         getcl_prerr = 2
+	         if(u.ge.0) write(u,1) 'Ambiguous switch: ',argv(1:n)
+	      else if (and(flag(i), DUPLICATE) .ne. 0) then
+	         getcl_prerr = 3
+	         if(u.ge.0) write(u,1) 'Repeated switch: ', argv(1:n)
+	      else if (and(flag(i), RANGE) .ne. 0) then
+	         getcl_prerr = 4
+	         call get_sarg(i+1, val)
+	         if(u.ge.0) write(u,1) 'Value out of range: ',
+     1              argv(1:n), val(1:lnblnk(val))
+	      else if (and(flag(i), BADNUM) .ne. 0) then
+	         getcl_prerr = 5
+	         call get_sarg(i+1, val)
+	         if(u.ge.0) write(u,1) 'Bad numeric value: ',
+     1              argv(1:n), val(1:lnblnk(val))
+	      end if
+	   else if (and(flag(i), IS_PARM) .ne. 0) then
+	      if (and(flag(i), MATCHED) .eq. 0) then
+	         getcl_prerr = 1
+	         call get_sarg(i, argv)
+	         if(u.ge.0) write(u,1) 'Extra parameter: ',
+     1              argv(1:lnblnk(argv))
+	      end if
+	   end if
+	end do
+	return
+
+1	format('getcl: ', a, a,: ' (', a, ')')
+	end
+
+*************************************************************************
+
+	function getcl_t(arg)
+	include 'getcl_defs.fh'
+	integer n, nn, nmin, nmax, map, getsw, valx, i, k, px, pnum
+	real r, rr, rmin, rmax
+	integer getcl_t, getcl_ts, getcl_bit, getcl_str, getcl_parm
+	integer getcl_int, getcl_real, getcl_intr, getcl_realr
+	character arg*(*), str*(*), argv*32
+
+*** Get switches without values
+
+	getcl_t = getsw(arg, argv, valx, IS_PARM)
+	return
+
+	entry getcl_ts(arg, str)
+	getcl_ts = getsw(arg, str, valx, IS_PARM)
+	return
+
+	entry getcl_bit(arg, map, n)
+	getcl_bit = getsw(arg, argv, valx, IS_PARM)
+C       
+C       Sun Feb 11 12:04:06 CST 1996
+C       Andy Fingerhut (jaf@arl.wustl.edu)
+C       
+C       The following line was originally:
+C       
+C	if (getcl_bit .gt. 0) map = map .or. n
+C       
+C       It caused the following error when compiling with f2c:
+C       
+C       Error on line 211: nonlogical operand of logical operator
+C       
+C       I believe the intent of the code is to do a bitwise logical or
+C       of map and n.  I'll replace this with a call to the function or,
+C       which f2c recognizes specially as a bitwise logical or.  See the
+C       definition of variable 'intrtab' of file intr.c in the f2c
+C       distribution for a list of all intrinsic functions recognized by
+C       f2c.
+C       
+	if (getcl_bit .gt. 0) map = or(map, n)
+	return
+
+*** Get switches with values
+
+	entry getcl_str(arg, str)
+	getcl_str = getsw(arg, str, valx, IS_VALUE)
+	return
+
+	entry getcl_int(arg, n)
+	getcl_int = getsw(arg, argv, valx, IS_VALUE)
+	if (valx .gt. 0) read (argv, *, err = 90) n
+	return
+
+	entry getcl_real(arg, r)
+	getcl_real = getsw(arg, argv, valx, IS_VALUE)
+	if (valx .gt. 0) read (argv, *, err = 90) r
+	return
+
+	entry getcl_intr(arg, n, nmin, nmax)
+	getcl_intr = getsw(arg, argv, valx, IS_VALUE)
+	if (valx .gt. 0) then
+	    read (argv, *, err = 90) nn
+	    n = max(min(nn, nmax), nmin)
+C       
+C       Sun Feb 11 12:04:06 CST 1996
+C       Andy Fingerhut (jaf@arl.wustl.edu)
+C       
+C       The following line was originally:
+C       
+C	    if(n.ne.nn) flag(valx-1) = ior(flag(valx-1), RANGE)
+C       
+C       It caused the following error when compiling with f2c:
+C       
+C       Error on line 235: Declaration error for ior: attempt to use
+C       untyped function
+C       
+C       I believe the intent of the code is to do a bitwise logical or
+C       of flag(valx-1) and the constant RANGE (64).  I'll replace this
+C       call to ior, and all others in this file, with calls to or.  See
+C       the block of comments by Andy Fingerhut above that mentions the
+C       intrinsic functions present in f2c.
+C       
+	    if(n.ne.nn) flag(valx-1) = or(flag(valx-1), RANGE)
+	end if
+	return
+
+	entry getcl_realr(arg, r, rmin, rmax)
+	getcl_realr = getsw(arg, argv, valx, IS_VALUE)
+	if (valx .gt. 0) then
+	    read (argv, *, err = 90) rr
+	    r = max(min(rr, rmax), rmin)
+	    if(r.ne.rr) flag(valx-1) = or(flag(valx-1), RANGE)
+	end if
+	return
+
+90	flag(valx-1) = or(flag(valx-1), BADNUM)
+	return
+
+*** Get an ordered parameter, return total number of parameters
+
+	entry getcl_parm(pnum, arg)
+	k = 0
+	px = 0
+	do i = 1, argc
+	    if (and(flag(i), IS_PARM) .ne. 0) k = k + 1
+	    if (pnum.gt.0 .and. px.eq.0 .and. k.eq.pnum) px = i
+	end do
+	if (px .gt. 0) then
+	    call get_sarg(px, arg)
+	    flag(px) = or(flag(px), MATCHED)
+	end if
+	getcl_parm = k
+	return
+	end
+
+*************************************************************************	
+*  Internal routines - not intended for use by applications             *
+*************************************************************************
+
+	function getsw(arg, argv, valx, pvflag)
+	include 'getcl_defs.fh'
+	character*(*) arg, argv, sw*16
+	integer getsw, match, swx, valx, i, k, pvflag, lnblnk
+
+*  Find switch, return match count, switch position, and value position
+
+	if(len(argv).lt.1 .or. len(argv).gt.256) stop 'getcl: bad string'
+	match = 0
+	swx = -1
+	valx = -1
+	do i = 1, argc
+	   if (and(flag(i), IS_SWITCH) .ne. 0) then
+	      call get_sarg(i, sw)
+	      k = min(lnblnk(arg),lnblnk(sw)-1)
+	      if (arg(1:k) .eq. sw(2:k+1)) then
+	         match = match + 1
+	         if (match .gt. 1) then
+*	            flag(i)   = or(flag(i),   DUPLICATE)
+	            flag(swx) = or(flag(swx), DUPLICATE)
+	         end if
+	         if (and(flag(i), MATCHED) .ne. 0) then
+	            flag(i) = or(flag(i), AMBIGUOUS)
+	         end if
+	         flag(i) = or(flag(i), MATCHED)
+	         if (i .lt. argc) then
+	            k = or(IS_SWITCH, IS_PARM)
+	            if (and(flag(i+1), k) .eq. 0) valx = i+1
+	         end if
+	         swx = i
+	      end if
+	   end if
+	end do
+
+	if (valx .gt. 0) flag(valx) = or(flag(valx), pvflag)
+
+	if (pvflag .eq. IS_PARM) then
+	    if (swx .gt. 0) call get_sarg(swx, argv)
+	else if (valx .gt. 0) then
+	    call get_sarg(valx, argv)
+	else
+	    match = -1
+	end if
+	getsw = match
+	return
+	end
+
+*************************************************************************
+
+	subroutine get_sarg(n, str)
+	include 'getcl_defs.fh'
+	integer n
+	character*(*) str
+
+	if (sargc .eq. 0) then
+	    call getarg(n, str)
+	else if (n.gt.0 .and. n.le.sargc) then
+	    str = line(lx(1,n):lx(2,n))
+	else
+	    str = ' '
+	end if
+	return
+	end

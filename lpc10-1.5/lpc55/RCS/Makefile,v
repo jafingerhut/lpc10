@@ -1,0 +1,217 @@
+head	1.1;
+access;
+symbols;
+locks
+	jaf:1.1; strict;
+comment	@# @;
+
+
+1.1
+date	96.02.13.22.50.30;	author jaf;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@# 
+# $Log$
+# 
+
+
+######################################################################
+# 
+# Pattern rules for using f2c and cc as a Fortran compiler, with
+# optional patch files for the automatically converted C programs.
+# 
+######################################################################
+
+# I could just use the fort77 script to automatically run f2c for me,
+# and then run the C compiler on the result, but I would like to be
+# able to convert files from .f to .c with f2c, and then possibly make
+# hand modifications to the .c files.  The following cancelling of the
+# built-in Fortran compilation rules, and replacing it with the rules
+# for converting Fortran to C, should let me do that.
+
+# Of course, this leaves open the possibility that I make hand
+# modifications to a C file, and then make modifications to the
+# Fortran file from which it was created.  The next run of make would
+# overwrite any hand modifications made to the C file.  To overcome
+# this, I might want to consider making hand modifications to C files
+# and save them as "patches" to the automatically created C file, so
+# that future conversions of the Fortran to C might automatically have
+# the patch applied to them, assuming that the resulting converted C
+# file is reasonably close to the one that was patched originally.
+
+# To implement the latter more sophisticated method, I'll probably
+# want to define a new suffix for the patch files (".cpatch",
+# perhaps?), and write rules for creating .c files from raw f2c output
+# and a patch file.  If no patch file exists, the .c file should be
+# the same as the raw f2c output.  I'll probably want to define a new
+# suffix for the unmodified f2c output file as well (perhaps ".f2c").
+
+# Cancel the built-in rule for compiling Fortran files
+
+%.o : %.f
+
+# The rule for creating .f2c files from .f files.  It uses file
+# redirection, because f2c would otherwise create a .c file.
+
+F2C=f2c
+F2CFLAGS=
+
+%.f2c : %.f
+	$(F2C) $(F2CFLAGS) $(F2CFLAGS_CMDLINE) < $< > $@@
+
+# The rule for creating a .c file from a .f2c file, and possibly a
+# .f2cpatch file.  If no .f2cpatch file exists, just copy the .f2c
+# file to the .c file.
+
+# I don't know yet if the following rule will work as I want it to,
+# which is to run the %.f2cpatch file through the patch program.  I'll
+# test it.
+
+# In my testing, I found out that one way that seems to work is this.
+
+# Create the .c file output of f2c, say foo.c.  Copy it to a new file
+# named something like foo-hand-modified.c.  Make modifications to
+# that new file.  Then create the patch file with a command like "diff
+# -c foo.c foo-hand-modified.c > foo.f2cpatch".  Then rename the
+# foo-hand-modified.c file to something else, e.g.,
+# "foo-hand-modified.c.bak", because otherwise when the program patch
+# is run, it will see both the foo.c and foo-hand-modified.c file
+# names at the beginning of the diff output, and complain that it
+# thinks it detected a patch that you are attempting to apply in
+# reverse.  This might be because at that time, foo.c is more recent
+# than foo-hand-modified.c.
+
+PATCH=patch
+
+%.c : %.f2cpatch %.f2c
+	$(COPY) $(basename $@@).f2c $@@
+	$(PATCH) < $<
+
+# The following rule will prevent the intermediate .c file from being
+# deleted after they are compiled.  They should still be overwritten
+# if the .f file is updated and make is run again.
+
+# I'm going to comment it out for now, since I'm not currently using
+# the feature to patch .f2c files produced by f2c.
+
+# I'm putting it back in, because it is useful when using gdb with
+# source level tracing of the file.  Without this special rule, there
+# are no .c source files to see while tracing.
+
+.PRECIOUS : %.c
+
+# If there is no .f2cpatch file, then hopefully the following rule
+# will match instead.  Of course, it might not work that way, but I
+# guess we'll see.
+
+COPY=cp
+
+%.c : %.f2c
+	$(COPY) $< $@@
+
+
+CFLAGS=-I$(F2C_BASE)/include
+F2CFLAGS=-u -A -c -72 -kr -P
+F2CLIBS=-L$(F2C_BASE)/lib -lf2c -lm
+
+# 
+# For my home Linux machine using the GCC compiler, joshua.wustl.edu
+# 
+
+#CC=gcc
+#F2C_BASE=/home/jaf
+# Only uncomment the following line when using the GCC compiler
+##CFLAGS+=-ggdb -Wall
+#CFLAGS+=-Wall
+# ^^^^^^^^^^^^^^^^^^
+# 
+# I'd like to use -ggdb at home, but when doing the final linking of
+# all the .o files, it gives an error message something like "the
+# library -lg doesn't exist".  I would guess that I need -ggdb
+# compiled versions of the GNU C library for using that option when
+# linking.  Can I still debug most of the program if all the .f/.c
+# files are compiled with -ggdb, but the linking is done without?
+
+# 
+# For the Solaris 5.3 machine siesta.wustl.edu
+# 
+
+# Use the BSD compatible C compiler, because getrusage() is called.
+#CC=/usr/ucb/cc
+#F2C_BASE=/home/cs/student/jaf
+
+# 
+# For the Solaris 5.3 machine siesta.wustl.edu, in an attempt to also
+# use GCC.  The getrusage() library call in extra.c is only defined on
+# Solaris machines in the /usr/ucbinclude include files, and the BSD
+# compatibility library /usr/ucblib/libucb.a.
+# 
+
+CC=gcc
+CFLAGS+=-ggdb -Wall
+CFLAGS+=-I/usr/ucbinclude
+F2C_BASE=/home/cs/student/jaf
+OTHER_LIBS=-L/usr/ucblib -lucb
+
+
+OBJECTS= \
+	lpcsim.o setup.o frame.o prepro.o hp100.o \
+	analys.o preemp.o onset.o placev.o placea.o lpfilt.o ivfilt.o \
+	tbdm.o difmag.o voicin.o vparms.o dyptrk.o \
+	dcbias.o energy.o mload.o invert.o rcchk.o \
+	trans.o encode.o chanwr.o decode.o ham84.o median.o \
+	synths.o pitsyn.o irc2pc.o bsynz.o deemp.o random.o \
+	sread.o bitio.o error.o getcl.o vqsetup.o spdio.o \
+	lnblnk.o extra.o
+
+#lpcsim: $(OBJECTS)
+#	$(CC) $(LDFLAGS) -o $@@ $(OBJECTS) $(F2CLIBS)
+
+# 
+# Mon Feb 12 15:30:14 CST 1996
+# Andy Fingerhut (jaf@@arl.wustl.edu)
+# 
+# Some of the following lines get fairly ugly.  There is probably a
+# cleaner way to do it, but I don't really care about that very much
+# right now.
+# 
+# The intent is to have all Sparc .o and executable files in the
+# subdirectory sparc, and all Linux i386 .o and executable files in
+# the subdirectory i386.
+# 
+
+default:
+	@@echo "Run make with on of the following targets:"
+	@@echo ""
+	@@echo "i386bin, sparcbin"
+
+i386bin:
+	-mkdir i386
+	cd i386; ARCH=i386 VPATH=..:. F2CFLAGS_CMDLINE=-I.. $(MAKE) -f ../Makefile $(PROGRAM)
+
+sparcbin:
+	-mkdir sparc
+	cd sparc; ARCH=sparc VPATH=..:. F2CFLAGS_CMDLINE=-I.. $(MAKE) -f ../Makefile $(PROGRAM)
+
+
+PROGRAM=lpcsim
+
+#$(ARCH)/$(PROGRAM): $(OBJECTS) $(ULIBS)
+
+$(PROGRAM): $(OBJECTS) $(ULIBS)
+	$(LINK.c) -o $@@ $(OBJECTS) $(F2CLIBS) $(OTHER_LIBS)
+
+clean:
+	rm -rf sparc i386
+@

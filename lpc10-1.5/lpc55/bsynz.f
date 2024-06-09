@@ -1,0 +1,260 @@
+******************************************************************
+*
+*	BSYNZ Version 54
+*
+* $Log: bsynz.f,v $
+* Revision 1.5  1996/08/20  21:13:00  jaf
+* In the previous version, I mistakenly SAVE'd and initialized LPI0 and
+* HPI0 instead of LPI1 and HPI1.  LPI0 and HPI0 do not need to be saved,
+* nor do they need to be initialized.
+*
+* Revision 1.4  1996/03/27  18:11:22  jaf
+* Changed the range of NOISE printed out in the debugging statements,
+* even though they are commented out.  I didn't discover this until I
+* tried comparing two different versions of the LPC-10 coder, each with
+* full tracing enabled.
+*
+* Revision 1.3  1996/03/26  19:33:23  jaf
+* Commented out trace statements.
+*
+* Revision 1.2  1996/03/20  17:12:54  jaf
+* Added comments about which indices of array arguments are read or
+* written.
+*
+* Rearranged local variable declarations to indicate which need to be
+* saved from one invocation to the next.  Added entry INITBSYNZ to
+* reinitialize the local state variables, if desired.
+*
+* Revision 1.1  1996/02/07 14:43:15  jaf
+* Initial revision
+*
+*
+******************************************************************
+*
+*   Synthesize One Pitch Epoch
+*
+* Input:
+*  COEF  - Predictor coefficients
+*          Indices 1 through ORDER read.
+*  IP    - Pitch period (number of samples to synthesize)
+*  IV    - Voicing for the current epoch
+*  RMS   - Energy for the current epoch
+*  RATIO - Energy slope for plosives
+*  G2PASS- Sharpening factor for 2 pass synthesis
+* Output:
+*  SOUT  - Synthesized speech
+*          Indices 1 through IP written.
+* 
+* This subroutine maintains local state from one call to the next.  If
+* you want to switch to using a new audio stream for this filter, or
+* reinitialize its state for any other reason, call the ENTRY
+* INITBSYNZ.
+*
+	SUBROUTINE BSYNZ(COEF, IP, IV, SOUT, RMS, RATIO, G2PASS)
+	INCLUDE 'config.fh'
+	INCLUDE 'contrl.fh'
+
+*       Arguments
+
+	REAL COEF(ORDER)
+	INTEGER IP, IV
+	REAL SOUT(IP), RMS, RATIO, G2PASS
+
+*       Function return value definitions
+
+	INTEGER RANDOM
+
+*	Parameters/constants
+
+*       KEXC is not a Fortran PARAMETER, but it is an array initialized
+*       with a DATA statement that is never modified.
+
+	INTEGER KEXC(25)
+	REAL A0, A1, A2, A3, B0, B1, B2, B3
+	REAL MESCL, PESCL
+	PARAMETER (A0= .125, A1=.75, A2= .125, A3=0)
+	PARAMETER (B0=-.125, B1=.25, B2=-.125, B3=0)
+	PARAMETER (MESCL=1.0, PESCL=1.0)
+
+*       Local variables that need not be saved
+
+*       NOISE is declared with range (1:MAXPIT+MAXORD), but only indices
+*       ORDER+1 through ORDER+IP are ever used, and I think that IP
+*       .LE. MAXPIT.  Why not declare it to be in the range (1:MAXPIT)
+*       and use that range?
+
+	INTEGER I, J, K
+	INTEGER PX
+	REAL NOISE(MAXPIT+MAXORD)
+	REAL LPI0, HPI0
+	REAL PULSE, SSCALE, XSSQ, SUM, SSQ, GAIN
+	REAL XY
+
+*       Local state
+
+*       I believe that only indices 1 through ORDER of EXC need to be
+*       saved from one invocation to the next, but we may as well save
+*       the whole array.
+
+*       None of these local variables were given initial values in the
+*       original code.  I'm guessing that 0 is a reasonable initial
+*       value for all of them.
+
+	INTEGER IPO
+	REAL EXC(MAXPIT+MAXORD), EXC2(MAXPIT+MAXORD)
+	REAL LPI1, LPI2, LPI3, HPI1, HPI2, HPI3
+	REAL RMSO
+
+	SAVE IPO
+	SAVE EXC, EXC2
+	SAVE LPI1, LPI2, LPI3, HPI1, HPI2, HPI3
+	SAVE RMSO
+
+	DATA IPO /0/
+*                  MAXPIT+MAXORD=166
+	DATA EXC /166*0./, EXC2 /166*0./
+	DATA LPI1 /0./, LPI2 /0./, LPI3 /0./
+	DATA HPI1 /0./, HPI2 /0./, HPI3 /0./
+	DATA RMSO /0./
+
+	DATA KEXC /8,-16,26,-48,86,-162,294,-502,718,-728,
+     1            184,672,-610,-672,184,728,718,502,294,162,
+     1            86,48,26,16,8/
+
+*  Calculate history scale factor XY and scale filter state
+
+	XY = MIN( RMSO/(RMS+1E-6), 8. )
+	RMSO = RMS
+	DO I = 1,ORDER
+	   EXC2(I) = EXC2(IPO+I)*XY
+	END DO
+	IPO = IP
+
+	IF(IV.EQ.0) THEN
+
+*  Generate white noise for unvoiced
+
+	   DO I = 1,IP
+	      EXC(ORDER+I) = RANDOM() / 2**6
+	   END DO
+
+*  Impulse doublet excitation for plosives
+
+*       (RANDOM()+32768) is in the range 0 to 2**16-1.  Therefore the
+*       following expression should be evaluated using integers with at
+*       least 32 bits (16 isn't enough), and PX should be in the range
+*       ORDER+1+0 through ORDER+1+(IP-2) .EQ. ORDER+IP-1.
+
+	   PX = ((RANDOM()+32768)*(IP-1)/2**16) + ORDER + 1
+	   PULSE = PESCL*(RATIO/4)*342
+	   IF(PULSE.GT.2000) PULSE = 2000
+	   EXC(PX)   = EXC(PX)   + PULSE
+	   EXC(PX+1) = EXC(PX+1) - PULSE
+
+*  Load voiced excitation
+
+	ELSE
+	   SSCALE = SQRT(FLOAT(IP))/6.928
+	   DO I = 1,IP
+	      EXC(ORDER+I) = 0.
+	      IF(I.LE.25) EXC(ORDER+I) = SSCALE*KEXC(I)
+	      LPI0 = EXC(ORDER+I)
+	      EXC(ORDER+I) = A0*EXC(ORDER+I) + A1*LPI1 + A2*LPI2 + A3*LPI3
+	      LPI3 = LPI2
+	      LPI2 = LPI1
+	      LPI1 = LPI0
+	   END DO
+	   DO I = 1,IP
+	      NOISE(ORDER+I) = MESCL * RANDOM() / 2**6
+	      HPI0 = NOISE(ORDER+I)
+	      NOISE(ORDER+I) = B0*NOISE(ORDER+I)
+     1                      + B1*HPI1 + B2*HPI2 + B3*HPI3
+	      HPI3 = HPI2
+	      HPI2 = HPI1
+	      HPI1 = HPI0
+	   END DO
+	   DO I = 1,IP
+	      EXC(ORDER+I) = EXC(ORDER+I) + NOISE(ORDER+I)
+	   END DO
+	END IF
+
+*   Synthesis filters:
+*    Modify the excitation with all-zero filter  1 + G*SUM
+
+	XSSQ = 0
+	DO I = 1,IP
+	   K = ORDER + I
+	   SUM = 0.
+	   DO J = 1,ORDER
+	      SUM = SUM + COEF(J)*EXC(K-J)
+	   END DO
+	   SUM = SUM*G2PASS
+	   EXC2(K) = SUM + EXC(K)
+	END DO
+
+*   Synthesize using the all pole filter  1 / (1 - SUM)
+
+	DO I = 1,IP
+	   K = ORDER + I
+	   SUM = 0.
+	   DO J = 1,ORDER
+	      SUM = SUM + COEF(J)*EXC2(K-J)
+	   END DO
+	   EXC2(K) = SUM + EXC2(K)
+	   XSSQ = XSSQ + EXC2(K)*EXC2(K)
+	END DO
+
+*  Save filter history for next epoch
+
+	DO I = 1,ORDER
+	   EXC(I) = EXC(IP+I)
+	   EXC2(I) = EXC2(IP+I)
+	END DO
+
+*  Apply gain to match RMS
+
+	SSQ = RMS*RMS*IP
+	GAIN = SQRT(SSQ/XSSQ)
+	DO I = 1,IP
+	   SOUT(I) = GAIN*EXC2(ORDER+I)
+	END DO
+
+
+*   Print test data
+
+*	IF(LISTL.GE.5) THEN
+*           
+*           I changed the range of indices to print within NOISE from
+*           1,IP+ORDER to 1+ORDER,IP+ORDER since indices 1 through ORDER
+*           of NOISE are never used.  This avoids printing out their
+*           "garbage" values.
+*           
+*	   IF(IV.NE.0)
+*     1     WRITE(FDEBUG,980) 'NOISE:',(NOISE(I),I=1+ORDER,IP+ORDER)
+*	   WRITE(FDEBUG,980) 'EXC:',  (EXC(I),  I=1,IP+ORDER)
+*	   WRITE(FDEBUG,980) 'EXC2:', (EXC2(I), I=1,IP+ORDER)
+*	   WRITE(FDEBUG,980) 'SOUT:', (SOUT(I), I=1,IP)
+*980	   FORMAT(1X,A,100(/1X,10F10.1))
+*	END IF
+
+	RETURN
+
+
+	ENTRY INITBSYNZ ()
+
+	IPO = 0
+	DO I = 1,(MAXPIT+MAXORD)
+	   EXC(I) = 0.
+	   EXC2(I) = 0.
+	END DO
+	LPI1 = 0.
+	LPI2 = 0.
+	LPI3 = 0.
+	HPI1 = 0.
+	HPI2 = 0.
+	HPI3 = 0.
+	RMSO = 0.
+
+	RETURN
+
+	END

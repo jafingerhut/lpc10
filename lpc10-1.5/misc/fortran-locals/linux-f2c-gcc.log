@@ -1,0 +1,33 @@
+make f2c-gcc EXECUTABLE_NAME=linux-f2c-gcc-prog CFLAGS="-I/home/jaf/include -L/home/jaf/lib"
+make[1]: Entering directory `/home/jaf/src/sound/lpc/fortran/understanding-fortran'
+f2c -A localtest.f
+localtest.f:
+   MAIN loctst:
+   try:
+# Print version number of f2c
+head -4 localtest.c
+/* localtest.f -- translated by f2c (version 19951025).
+   You must link the resulting object file with the libraries:
+	-lf2c -lm   (in that order)
+*/
+# Print version number of gcc
+gcc -v
+Reading specs from /usr/lib/gcc-lib/i486-linux/2.7.0/specs
+gcc version 2.7.0
+gcc -I/home/jaf/include -L/home/jaf/lib localtest.c -lf2c -lm -o linux-f2c-gcc-prog
+ls -l linux-f2c-gcc-prog
+-rwxr-xr-x   1 jaf      jaf         26059 Feb  9 09:36 linux-f2c-gcc-prog
+ldd linux-f2c-gcc-prog
+	libm.so.5 => /lib/libm.so.5.0.0
+	libc.so.5 => /lib/libc.so.5.0.9
+linux-f2c-gcc-prog
+local variable k is   0
+local variable j is  10
+local variable k is   1
+local variable j is  20
+local variable k is   2
+local variable j is  30
+local variable k is   3
+local variable j is  40
+local variable j is  50
+make[1]: Leaving directory `/home/jaf/src/sound/lpc/fortran/understanding-fortran'

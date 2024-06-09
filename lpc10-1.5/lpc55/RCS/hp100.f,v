@@ -1,0 +1,298 @@
+head	1.6;
+access;
+symbols;
+locks; strict;
+comment	@* @;
+
+
+1.6
+date	96.03.15.16.45.25;	author jaf;	state Exp;
+branches;
+next	1.5;
+
+1.5
+date	96.03.14.23.20.54;	author jaf;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	96.03.14.23.08.08;	author jaf;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	96.03.14.22.09.20;	author jaf;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	96.02.12.15.05.54;	author jaf;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	96.02.07.14.47.12;	author jaf;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.6
+log
+@Rearranged a few comments.
+@
+text
+@**********************************************************************
+*
+*      HP100 Version 55
+*
+* $Log: hp100.f,v $
+* Revision 1.5  1996/03/14  23:20:54  jaf
+* Added comments about when INITHP100 should be used.
+*
+* Revision 1.4  1996/03/14  23:08:08  jaf
+* Added an entry named INITHP100 that initializes the local state of
+* subroutine HP100.
+*
+* Revision 1.3  1996/03/14  22:09:20  jaf
+* Comments added explaining which of the local variables of this
+* subroutine need to be saved from one invocation to the next, and which
+* do not.
+*
+* Revision 1.2  1996/02/12  15:05:54  jaf
+* Added lots of comments explaining why I changed one line, which was a
+* declaration with initializations.
+*
+* Revision 1.1  1996/02/07 14:47:12  jaf
+* Initial revision
+*
+*
+**********************************************************************
+*
+*    100 Hz High Pass Filter
+*
+* Jan 92 - corrected typo (1.937148 to 1.935715),
+*          rounded coefficients to 7 places,
+*          corrected and merged gain (.97466**4),
+*          merged numerator into first two sections.
+*
+* Input:
+*  start, end - Range of samples to filter
+* Input/Output:
+*  speech(end) - Speech data.
+*                Indices start through end are read and modified.
+* 
+* This subroutine maintains local state from one call to the next.  If
+* you want to switch to using a new audio stream for this filter, or
+* reinitialize its state for any other reason, call the ENTRY
+* INITHP100.
+
+	subroutine hp100(speech, start, end)
+
+*       Arguments
+
+	integer start, end
+	real speech(end)
+
+*       Local variables that need not be saved
+
+	integer i
+	real si, err
+
+*       Local state
+
+	real z11, z21, z12, z22
+	data z11/0./, z21/0./, z12/0./, z22/0./
+	save z11, z21, z12, z22
+
+	do i = start,end
+	    si = speech(i)
+
+	    err = si + 1.859076*z11 - .8648249*z21
+	    si = err - 2.00*z11 + z21
+	    z21 = z11
+	    z11 = err
+
+	    err = si + 1.935715*z12 - .9417004*z22
+	    si = err - 2.00*z12 + z22
+	    z22 = z12
+	    z12 = err
+
+	    speech(i) = .902428*si
+	end do
+
+	return
+
+
+	entry inithp100 ()
+
+	z11 = 0.
+	z21 = 0.
+	z12 = 0.
+	z22 = 0.
+
+	return
+	end
+
+
+*       I believe that the desired result of the original declaration of
+*       z11, z21, z12, and z22, shown here:
+*       
+*	real z11/0/, z21/0/, z12/0/, z22/0/
+*       
+*       was that these values would be initialized to 0 at the beginning
+*       of the execution of the program, _and_ that whatever values they
+*       had when this subroutine returns would be preserved when the
+*       subroutine is called the next time.
+*       
+*       From my cursory reading of the Fortran 77 statement, the value
+*       of these local variables should be undefined on all but the
+*       first call, when they are known to be 0 because of the
+*       initialization.  That is, the line above could be replaced with
+*       the following more explicit lines:
+*       
+*	real z11/0/, z21/0/, z12/0/, z22/0/
+*       save z11, z21, z12, z22
+*       
+*       Furthermore, the free Fortran to C translator f2c gives an error
+*       message for declarations of variables with initializations, so
+*       I'm going to replace the two lines above with the following:
+*       
+*	real z11, z21, z12, z22
+*	data z11/0/, z21/0/, z12/0/, z22/0/
+*       save z11, z21, z12, z22
+*       
+*       Verbose, I know, but very explicit!  I don't worry too much
+*       about verbosity, as you can tell from these comments :-)
+@
+
+
+1.5
+log
+@Added comments about when INITHP100 should be used.
+@
+text
+@d6 3
+a34 48
+
+
+*       subroutine hp100(inout real speech(end), in integer start,
+*                                                in integer end)
+*       
+*       100 Hz high pass filter, which must assume some particular
+*       sampling rate for the signal in the array 'speech'.  That rate
+*       should be 8000 samples/sec.
+*       
+*       I believe that the desired result of the original declaration of
+*       z11, z21, z12, and z22, shown here:
+*       
+*	real z11/0/, z21/0/, z12/0/, z22/0/
+*       
+*       was that these values would be initialized to 0 at the beginning
+*       of the execution of the program, _and_ that whatever values they
+*       had when this subroutine returns would be preserved when the
+*       subroutine is called the next time.
+*       
+*       From my cursory reading of the Fortran 77 statement, the value
+*       of these local variables should be undefined on all but the
+*       first call, when they are known to be 0 because of the
+*       initialization.  That is, the line above could be replaced with
+*       the following more explicit lines:
+*       
+*	real z11/0/, z21/0/, z12/0/, z22/0/
+*       save z11, z21, z12, z22
+*       
+*       Furthermore, the free Fortran to C translator f2c gives an error
+*       message for declarations of variables with initializations, so
+*       I'm going to replace the two lines above with the following:
+*       
+*	real z11, z21, z12, z22
+*	data z11/0/, z21/0/, z12/0/, z22/0/
+*       save z11, z21, z12, z22
+*       
+*       Verbose, I know, but very explicit!  I don't worry too much
+*       about verbosity, as you can tell from these comments :-)
+*       
+*       All of this might be pretty much hair-splitting anyway, since
+*       the number of stored values in the state is not terribly large,
+*       and the effect of garbage values in these variables (at least in
+*       the range -1 to +1) probably isn't perceptible for very long to
+*       a human listener, if at all.  Of course, garbage values every
+*       frame time would be bad, since there are many frames per second.
+*       
+
+*
+d92 31
+@
+
+
+1.4
+log
+@Added an entry named INITHP100 that initializes the local state of
+subroutine HP100.
+@
+text
+@d6 4
+d85 5
+a89 1
+*
+d98 1
+a98 1
+*       Local variables
+d103 1
+a103 2
+*       NO SAVE NECESSARY  i
+*       NO SAVE NECESSARY  si, err
+@
+
+
+1.3
+log
+@Comments added explaining which of the local variables of this
+subroutine need to be saved from one invocation to the next, and which
+do not.
+@
+text
+@d6 5
+d78 3
+a80 2
+* In/Output:
+*  speech     - Speech data
+d117 10
+@
+
+
+1.2
+log
+@Added lots of comments explaining why I changed one line, which was a
+declaration with initializations.
+@
+text
+@d6 4
+d70 7
+d78 14
+a91 2
+	integer i, start, end
+	real speech(end), si, err
+d93 1
+a93 1
+	data z11/0/, z21/0/, z12/0/, z22/0/
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d5 4
+a8 1
+* $Log$
+d19 47
+d69 3
+a71 1
+	real z11/0/, z21/0/, z12/0/, z22/0/
+@

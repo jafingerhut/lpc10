@@ -1,0 +1,7 @@
+#! /bin/sh
+
+# Convert a file of 16 bit linear audio samples into a file with 8 bit
+# mu-law encoded samples, and a Sun audio file header, so that it can
+# be played with the command play.
+
+audioconvert -F -i rate=8000,channels=1,encoding=linear16,format=raw -f rate=8000,channels=1,encoding=ulaw,format=sun

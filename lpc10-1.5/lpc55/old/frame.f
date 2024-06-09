@@ -1,0 +1,93 @@
+**********************************************************************
+*
+*	FRAME Version 54
+*
+* $Log: frame.f,v $
+* Revision 1.3  1996/03/21  21:35:44  jaf
+* Determined which local variables should be saved from one invocation
+* to the next, and gave initial values to the ones that needed them.
+*
+* Revision 1.2  1996/02/12  15:03:00  jaf
+* Added a few comments.  Nothing comprehensive.
+*
+* Revision 1.1  1996/02/07 14:46:05  jaf
+* Initial revision
+*
+*
+**********************************************************************
+*
+*    Do whatever has to be done on a per frame basis:
+*
+*   * Update frame and block counters
+*
+*   * Set test data level of detail for particular frames:
+*     Level  Meaning
+*       -1     Vary detail level by frame 
+*        0     No data file generated
+*        1     Processing statistics only
+*        2     Coded parameters for each frame
+*        3     Scalar variables and RC's
+*        4     Vectors and matrices
+*        5     Synthesis buffers
+*        6     Analysis buffers
+*
+*   To use variable detail level, create a file 'TESTDATA.DAT' with lines
+*   containing < starting frame, ending frame, detail level > for each
+*   range of interest.  If ending frame = 0, the specified detail level
+*   will be used when not within any explicitly specified range.
+*
+
+*       All of the things in here now are only for updating things
+*       related to printing debugging information.
+
+	SUBROUTINE FRAME()
+	INCLUDE 'contrl.fh'
+
+*       Parameters/constants
+
+	INTEGER LUNIT
+	PARAMETER (LUNIT=7)
+
+*       Local state
+
+*       Given that NFRAME is initialized to 0 before the first call, LL
+*       will always be initialized on the first call.
+*       
+*       In addition, if FRAME2 is initialized to any value .LE. NFRAME's
+*       value on the first call, then the code below is guaranteed to
+*       initialize FRAME1 and LNEXT before using their values.
+
+	INTEGER FRAME1, FRAME2, LSAVE, LNEXT, LL
+
+	SAVE FRAME1, FRAME2, LSAVE, LNEXT, LL
+
+	DATA FRAME2 /0/, LSAVE /0/
+
+*  Update frame counter
+
+	NFRAME = NFRAME + 1
+
+*   Set test data level of detail
+
+*       Note that the following condition is true exactly once, on the
+*       first call to FRAME.  Thus, LL is always initialized on the
+*       first call.
+
+	IF (NFRAME .LE. 1) THEN
+	    LL = LISTL
+	    IF (LL .LT. 0)
+     1          OPEN(UNIT=LUNIT, FILE='TESTDATA.DAT', STATUS='OLD')
+	END IF
+
+	IF (LL .LT. 0) THEN
+	    DO WHILE (NFRAME.GE.FRAME2)
+	        READ(LUNIT,*,END=1110) FRAME1, FRAME2, LNEXT
+	        LNEXT = MAX(LNEXT, 1)
+		LSAVE = MAX(LSAVE, 1)
+	        IF (FRAME2 .LE. 0) LSAVE = LNEXT
+	    END DO
+1110	    LISTL = LSAVE
+	    IF (NFRAME.GE.FRAME1 .AND. NFRAME.LE.FRAME2) LISTL = LNEXT
+	END IF
+	RETURN
+	END

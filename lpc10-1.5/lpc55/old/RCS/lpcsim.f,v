@@ -1,0 +1,148 @@
+head	1.3;
+access;
+symbols;
+locks; strict;
+comment	@* @;
+
+
+1.3
+date	96.03.25.20.07.30;	author jaf;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	96.02.12.15.07.26;	author jaf;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	96.02.07.14.33.03;	author jaf;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.3
+log
+@Removed the comments added last time, and added a few different ones.
+@
+text
+@************************************************************************
+*
+*     NSA LPC-10 Voice Coder
+*
+*       Unix Version 54
+*
+*        15 March 1991
+*
+* $Log: lpcsim.f,v $
+* Revision 1.2  1996/02/12 15:07:26  jaf
+* Added a few comments.
+*
+* Revision 1.1  1996/02/07 14:33:03  jaf
+* Initial revision
+*
+*
+************************************************************************
+
+
+	PROGRAM LPCSIM
+	INCLUDE 'config.fh'
+	INCLUDE 'contrl.fh'
+
+	INTEGER VOICE(2), PITCH
+	REAL RMS, RC(MAXORD), SPEECH(MAXFRM+MAXPIT)
+	INTEGER LEN, N, SREAD, SWRITE
+	LOGICAL EOF
+	DATA  EOF /.FALSE./
+
+*   Set processing options, open files
+
+	CALL SETUP()
+
+*   Process until end of file on input
+
+	DO WHILE(.TRUE.)
+	   CALL FRAME()
+
+*   Read, Pre-process, and Analyze input speech
+
+*       ... but only if the input file is speech (audio samples).  If
+*       the input is 'parameters' or 'bits', then the reading is done in
+*       the call to TRANS().
+
+	   IF (FSI .GE. 0) THEN
+	      N = SREAD(FSI, SPEECH, LFRAME)
+	      IF(N .NE. LFRAME) GOTO 900
+	      CALL PREPRO(SPEECH, LFRAME)
+	      CALL ANALYS(SPEECH, VOICE, PITCH, RMS, RC)
+	   END IF
+
+*   Encode parameters and send over channel
+
+	   CALL TRANS(VOICE, PITCH, RMS, RC, EOF)
+	   IF(EOF) GOTO 900
+
+*   Synthesize speech from received parameters
+
+*       ... but only if the output file is speech (audio samples).  If
+*       the output is 'parameters' or 'bits', then the writing is done
+*       in the call to TRANS().
+
+	   IF (FSO .GE. 0) THEN
+	      CALL SYNTHS(VOICE, PITCH, RMS, RC, SPEECH, LEN)
+*	      IF (LISTL .GE. 2) THEN
+*		 WRITE(FDEBUG,100) NFRAME, LEN
+*100		 FORMAT(1X,'NFRAME ',I4,' LENGTH OF DECODED FRAME ',I3)
+*	      END IF
+	      N = SWRITE(FSO, SPEECH, LEN)
+	   END IF
+	END DO
+
+*   Finished - wrap it up
+
+900	CALL WRAPUP()
+	CALL EXIT(0)
+	END
+@
+
+
+1.2
+log
+@Added a few comments.
+@
+text
+@d10 3
+d41 3
+a43 13
+*       Currently the size of the frames, LFRAME, is set to MAXFRM,
+*       which is set to 180.  I wonder what the restrictions might be on
+*       other values that this code will work for?
+
+*       Preprocessing (PREPRO) consists of passing the frame through a
+*       100 Hz high-pass filter, implemented in the subroutine HP100().
+*       I don't know what order filter it is, but the current
+*       implementation requires 7 real multiplications and 8 real
+*       additions/subtractions per sample.  I don't know enough about
+*       writing filters to know if that can be reduced, but Bill would
+*       know.  Perhaps the filter could even be removed or modified.
+
+
+d59 4
+d65 4
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d9 4
+a12 1
+* $Log$
+d37 14
+@

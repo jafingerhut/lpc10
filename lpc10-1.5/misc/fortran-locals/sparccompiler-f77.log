@@ -1,0 +1,25 @@
+# Print version number of compiler and other components with -V option
+f77 -V localtest.f -o sparccompiler-f77
+f77: SC3.0.1 24 Jan 1995
+f77pass1: SC3.0.1 01 Feb 1995 Sun FORTRAN 77 3.0.1 patch 101911-04
+localtest.f:
+ MAIN loctst:
+	try:
+ld: Software Generation Utilities (SGU) SunOS/ELF (LK-1.4 (S/I))
+ls -l sparccompiler-f77
+-rwx------   1 jaf      student     13876 Feb  8 17:52 sparccompiler-f77
+ldd sparccompiler-f77
+	libF77.so.2 =>	 /opt/SUNWspro_3.0.1/lib/libF77.so.2
+	libm.so.1 =>	 /usr/lib/libm.so.1
+	libc.so.1 =>	 /usr/lib/libc.so.1
+	libdl.so.1 =>	 /usr/lib/libdl.so.1
+sparccompiler-f77
+local variable k is   0
+local variable j is  10
+local variable k is   1
+local variable j is  20
+local variable k is   2
+local variable j is  30
+local variable k is   3
+local variable j is  40
+local variable j is  50

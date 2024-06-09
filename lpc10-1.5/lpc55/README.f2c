@@ -1,0 +1,413 @@
+March 31, 1996
+
+All of these notes apply to my experience with version 19951025 of
+f2c.
+
+Additions, comments, and corrections are welcome.
+
+Andy Fingerhut
+Applied Research Laboratory                     <-- this line is optional if
+Washington University, Campus Box 1045/Bryan 509      you have limited space
+One Brookings Drive
+Saint Louis, MO 63130-4899
+ 
+jaf@arl.wustl.edu
+http://www.arl.wustl.edu/~jaf/
+
+
+
+Solaris 2.4
+-----------
+Below are the changes I made to the f2c distribution to get it to
+compile and run cleanly on the machine siesta.cs.wustl.edu, which
+is a Sparc-20 running Solaris 2.4.
+
+
+libF77/makefile
+libI77/makefile
+
+Added -I option to point to directory containing header file f2c.h,
+which is $(HOME)/include on my machine.
+
+Changed definition of CC so that the GNU C compiler is used.
+
+I originally compiled f2c with GCC 2.6.0.  It compiled fine, but the
+resulting executable had a small problem, due to a bug either in GCC
+2.6.0 in general, GCC 2.6.0 on Solaris 2.4, or perhaps it is only the
+GCC 2.6.0 installation on siesta.cs.wustl.edu.  I haven't seen this
+problem on GCC 2.5.8 running under SunOS 4.1.4, or GCC 2.7.0 running
+under Linux.  The problem was that my GCC 2.6.0 installation
+considered the escape sequence "\v" to be a vertical tab when it
+appeared as a single character (i.e., '\v'), but as a normal character
+'v' when it appeared inside of a string (i.e., "\v"), or perhaps it
+was vice versa.  The f2c code will work correctly whether your C
+compiler considers \v as a vertical tab or a normal v, but only as
+long as it is consistent between its appearance in single characters
+or strings.
+
+The resulting f2c executable would exhibit the problem that any 'v'
+characters in strings in the Fortran source would be replaced with the
+sequence of two characters "\v" in the converted C source file.
+
+My work-around was to use Sun's SparcWorks C compiler to compile f2c.
+
+This GCC bug didn't hinder its use for compiling libI77 or libF77.
+
+
+libI77/fmt.h
+
+Added "#define USE_STRLEN", because apparently things didn't run well
+without it.  I don't recall the problems that occurred before this
+change was made.  I believe that it compiled without problems, but
+that there were some kind of run-time file I/O problems.
+
+
+
+SunOS 4.1.4
+-----------
+
+Below are the changes I made to the f2c distribution to get it to
+compile and run cleanly on the machine leia.wustl.edu, which is a
+Sparc-10 running SunOS 4.1.4
+
+I don't know if these changes will work with other SunOS 4.1.4
+machines or not.
+
+
+libF77/makefile
+libI77/makefile
+
+Added -I option to point to directory containing header file f2c.h,
+which is $(HOME)/include on my machine.
+
+Changed definition of CC so that the GNU C compiler is used.
+
+For libF77/makefile, I also added the option -DNO_ONEXIT to CFLAGS.  I
+found that compiling the libraries without the -DNO_ONEXIT option
+didn't cause problems immediately, but it did prevent the Fortran
+program I was compiling with f2c from linking properly, when GCC
+complained that the symbol _atexit could not be resolved.
+
+
+libI77/fmt.h
+
+Added "#define USE_STRLEN", because apparently things didn't run well
+without it.  I don't recall the problems that occurred before this
+change was made.  I believe that it compiled without problems, but
+that there were some kind of run-time file I/O problems.
+
+
+
+Linux/Intel
+-----------
+
+Below are the changes I made to the f2c distribution to get it to
+compile and run cleanly on my home Linux/Intel machine, on which I
+installed the Caldera Preview II distribution, based on Red Hat
+Commercial Linux (maybe version 2.0?  I'm not certain).  I have not
+tested these changes with other Linux distributions.
+
+
+libF77/makefile
+libI77/makefile
+
+Added -I option to point to directory containing header file f2c.h,
+which is $(HOME)/include on my machine.
+
+libI77/fio.h
+
+Added "#define NON_UNIX_STDIO", because apparently things didn't compile
+well without it on my home Linux machine.
+
+
+
+f2c options that I used for the LPC-10 Fortran code
+---------------------------------------------------
+
+# Fri Feb  9 10:51:15 CST 1996
+# Andy Fingerhut (jaf@arl.wustl.edu)
+# 
+# Here is most of the f2c man page.  All option descriptions are
+# included in this excerpt.  I've inserted my own comments stating
+# whether the option should be used or not, and why.
+
+
+#DESCRIPTION
+#     F2c converts Fortran 77 source code in files with names end-
+#     ing  in  `.f'  or  `.F'  to  C  (or C++) source files in the
+#     current directory, with `.c' substituted for the final  `.f'
+#     or  `.F'.   If no Fortran files are named, f2c reads Fortran
+#     from standard input and writes C on standard  output.   File
+#     names  that  end with `.p' or `.P' are taken to be prototype
+#     files, as produced by option `-P', and are read first.
+
+#     The following options have the same meaning as in f77(1).
+
+# NO.  MAYBE WHEN TESTING.  I'm not going to use the -C option, except
+# perhaps when testing, because going to assume that the source
+# Fortran is "safe" as regards to array bounds checking, and avoid the
+# run-time penalty of adding such code.  Of course, I'll also go
+# through the Fortran source with a fine-toothed comb to check for
+# such problems.
+
+#     -C   Compile  code  to  check  that  subscripts  are  within
+#          declared array bounds.
+
+# NO.  MAYBE LATER.  This may be useful for speeding up the
+# implementation on a 16-bit processor, but I won't worry about this
+# until after it is working with 32-bit integers, if at all.
+
+#     -I2  Render INTEGER and LOGICAL as short, INTEGER*4 as  long
+#          int.  Assume the default libF77 and libI77:  allow only
+#          INTEGER*4  (and  no  LOGICAL)  variables  in  INQUIREs.
+#          Option  `-I4' confirms the default rendering of INTEGER
+#          as long int.
+
+# NO.  All include files for the Fortran source are in the same
+# directory as the source files, so this option isn't needed.
+
+#     -Idir
+#          Look for a  non-absolute  include  file  first  in  the
+#          directory  of  the  current  input file, then in direc-
+#          tories specified  by  -I  options  (one  directory  per
+#          option).   Options  -I2  and  -I4  have precedence, so,
+#          e.g., a directory named 2 should be specified by  -I./2
+#          .
+
+# NO.  I don't see why this option exists.  Why have an option which
+# changes the semantics of the language?  Is it because Fortran
+# versions older than Fortran 77 defined DO loops to always be
+# performed at least once?
+
+#     -onetrip
+#          Compile DO loops that are performed at  least  once  if
+#          reached.  (Fortran 77 DO loops are not performed at all
+#          if the upper limit is smaller than the lower limit.)
+
+# NO.  I don't see any reason that I might need this.
+
+#     -U   Honor the case of variable and external names.  Fortran
+#          keywords must be in lower case.
+
+# YES.  I want to use the following option, to see if any variables in
+# the source code are typed by default.  I have searched for
+# 'undefined' in the C files produced, and there was no occurrence of
+# it.  Good.
+
+#     -u   Make the default type of a variable `undefined'  rather
+#          than using the default Fortran rules.
+
+# NO.  I want to see the warning messages.
+
+#     -w   Suppress all warning messages, or,  if  the  option  is
+#          `-w66', just Fortran 66 compatibility warnings.
+
+#     The following options are peculiar to f2c.
+
+# YES.  GCC is an ANSI C compiler, so let's use the newer style
+# declarations, and whatever else comes with ANSI C.
+
+#     -A   Produce ANSI C.  Default is old-style C.
+
+# NO.  It is probably important _not_ to use this option on the
+# original Fortran source, because it appears that some of the
+# original Fortran source depends on local variables preserving their
+# values from one call to another, even if they don't have a DATA or
+# SAVE statement.  I would like to change the Fortran source code by
+# adding SAVE statements to explicitly document such dependencies in
+# the source code.
+
+#     -a   Make  local  variables  automatic  rather  than  static
+#          unless they appear in a DATA, EQUIVALENCE, NAMELIST, or
+#          SAVE statement.
+
+# NO.  I want C source code.
+
+#     -C++ Output C++ code.
+
+# YES.  This might be useful for looking in problems with the
+# translation, but it could get annoying.
+
+#     -c   Include original Fortran source as comments.
+
+# NO.  I'm planning on only running f2c in the directory where the .c
+# result file should be placed.
+
+#     -ddir
+#          Write `.c'  files  in  directory  dir  instead  of  the
+#          current directory.
+
+# ???  I don't know whether this is useful for the LPC source code or
+# not.  I won't use the option until I understand what it means.
+
+#     -E   Declare uninitialized COMMON to be Extern  (overridably
+#          defined in f2c.h as extern).
+
+# ???  I don't know whether this is useful for the LPC source code or
+# not.  I won't use the option until I understand what it means.
+
+#     -ec  Place uninitialized COMMON blocks  in  separate  files:
+#          COMMON  /ABC/ appears in file abc_com.c.  Option `-e1c'
+#          bundles the separate files into the output  file,  with
+#          comments that give an unbundling sed(1) script.
+
+# ???  I don't know whether this is useful for the LPC source code or
+# not.  I won't use the option until I understand what it means.
+
+#     -ext Complain about f77(1) extensions.
+
+# NO.  I'll assume that the original Fortran source for the LPC coder
+# uses only the first 72 columns, and use the -72 option below.  Of
+# course, I might change this if I find out that the source code does
+# extend past column 72.
+
+#     -f   Assume free-format input: accept text after  column  72
+#          and do not pad fixed-format lines shorter than 72 char-
+#          acters with blanks.
+
+# YES.  See -f comment above.
+
+#     -72  Treat text appearing after column 72 as an error.
+
+# NO.  MAYBE WHEN TESTING.  This might be useful when tracking down
+# problems.
+
+#     -g   Include original Fortran line numbers in #line lines.
+
+# NO.  I don't understand what it does.
+
+#     -h   Emulate Fortran 66's treatment  of  Hollerith:  try  to
+#          align  character  strings on word (or, if the option is
+#          `-hd', on double-word) boundaries.
+
+# NO.  MAYBE LATER.  See comments for -I2 options.
+
+#     -i2  Similar to -I2, but assume a modified libF77 and libI77
+#          (compiled  with -Df2c_i2), so INTEGER and LOGICAL vari-
+#          ables may be assigned by INQUIRE and array lengths  are
+#          stored in short ints.
+
+# ??? I'm not sure exactly what this does.
+
+#     -kr  Use temporary  values  to  enforce  Fortran  expression
+#          evaluation  where  K&R (first edition) parenthesization
+#          rules allow rearrangement.  If the  option  is  `-krd',
+#          use  double  precision  temporaries  even  for  single-
+#          precision operands.
+
+# ???  These might be useful in compiling the C program with an ANSI C
+# compiler such as GCC, to reduce the number of warning messages
+# printed out.
+
+#     -P   Write a file.P of ANSI (or C++) prototypes for  defini-
+#          tions  in  each  input  file.f or file.F.  When reading
+#          Fortran from standard input, write  prototypes  at  the
+#          beginning  of  standard  output.  Option -Ps implies -P
+#          and gives exit status 4 if  rerunning  f2c  may  change
+#          prototypes or declarations.
+
+# NO.  This could make the resulting C code easier to read, but it
+# could be dangerous if one then attempted to maintain the translated
+# C code, because one probably wouldn't realize that it was a
+# preprocessor definition.
+
+#     -p   Supply preprocessor definitions  to  make  common-block
+#          members look like local variables.
+
+# NO.  MAYBE IN PRODUCTION VERSION.  It appears that the default
+# behavior is to promote REAL functions and operations to double
+# precision.  This could slow down an implementation doing a lot of
+# real arithmetic.
+
+#     -R   Do not promote REAL functions and operations to  DOUBLE
+#          PRECISION.  Option  `-!R'  confirms  the default, which
+#          imitates f77.
+
+# ???  I'm not sure whether this would be useful or not.
+
+#     -r   Cast values of REAL functions (including intrinsics) to
+#          REAL.
+
+# PROBABLY NO.  I'm not sure whether this would be useful or not.  It
+# could certainly slow down an implementation.
+
+#     -r8  Promote REAL to DOUBLE  PRECISION,  COMPLEX  to  DOUBLE
+#          COMPLEX.
+
+# ???  I'm not sure whether this would be useful or not.
+
+#     -s   Preserve multidimensional  subscripts.   Suppressed  by
+#          option `-C' .
+
+# NO.  See comment for -Idir option.
+
+#     -Tdir
+#          Put temporary files in directory dir.
+
+# ???  I'm not sure whether this would be useful or not.
+
+#     -w8  Suppress warnings when  COMMON  or  EQUIVALENCE  forces
+#          odd-word alignment of doubles.
+
+# NO.  I hope that the LPC source code never tries to do such an
+# initialization.
+
+#     -Wn  Assume n characters/word (default 4) when  initializing
+#          numeric variables with character data.
+
+# NO.  It shouldn't matter, as the LPC source never uses types COMPLEX
+# or DOUBLE COMPLEX.  (Checked with 'grep -i complex *' in source
+# directory).
+
+#     -z   Do not implicitly recognize DOUBLE COMPLEX.
+
+# NO.  ??? I'm not sure what this does.  I used the option, and the
+# resulting C code replaced 'v' characters in the Fortran source
+# strings with "\v" sequences in the C code strings.  That worries me.
+# I'm going to stop using the option and see if that improves things.
+
+# I tried the same f2c command line with and without this option, but
+# the resulting .c files error.c, setup.c, and vqsetup.c all contain
+# strings with the 'v' characters escaped (i.e. prepended with a
+# backslash).  GCC v2.6.0 appears to treat this as a normal v, even
+# with the -ansi -pedantic options turned on, but Sun's cc compiler
+# SC3.0.1 turns this into a "vertical tab" (control-K).  Not good.
+
+# Could this be a bug in the newest version of f2c, that the 1992
+# version I got from Bill Dorsey does not have?
+
+# I found out that it was a bug either in GCC v2.6.0, or in the way it
+# was installed on siesta.cs.wustl.edu.  I think I fixed the problem
+# by recompiling f2c using Sun's C compiler, rather than GCC.
+
+#     -!bs Do not recognize backslash escapes (\", \', \0, \\, \b,
+#          \f, \n, \r, \t, \v) in character strings.
+
+# NO.  I want the C output all the time, and maybe not the -P output.
+
+#     -!c  Inhibit C output, but produce -P output.
+
+# NO.  The LPC source uses include statements frequently.
+
+#     -!I  Reject include statements.
+
+# ???  I doubt such things are used in LPC source, but I don't see any
+# reason to disallow it.  If the LPC source declares such a thing, it
+# probably needs a large integer for something.
+# 
+# I used the command "grep -i 'integer\*' *" in the source directory
+# to search for such things, and the only such declarations were of
+# INTEGER*2's.
+
+#     -!i8 Disallow INTEGER*8.
+
+# ???  I'm not sure whether this would be useful or not.
+
+#     -!it Don't infer types of untyped EXTERNAL  procedures  from
+#          use  as  parameters to previously defined or prototyped
+#          procedures.
+
+# ???  I'm not sure whether this would be useful or not.
+
+#     -!P  Do not attempt to infer ANSI  or  C++  prototypes  from
+#          usage.

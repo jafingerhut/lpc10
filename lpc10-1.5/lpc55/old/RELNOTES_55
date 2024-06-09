@@ -1,0 +1,29 @@
+  LPC version 55 has the following differences from version 54:
+
+ * Preemphasis is restored to the original single-zero filter, 1-.9375**z-1.
+   This removes the extra 6 dB boost added around version 47.  The routine
+   has been generalized to have the preemphasis coefficient and filter
+   state passed as parameters.
+
+ * The 100 Hz high-pass filter hp100 had a missing digit in one of the
+   denominator coefficients, which has been corrected.  The two single-zero
+   stages have been merged so that the filter now consists of just two
+   second order sections.
+
+ * The low pass filter has been increased from 19 to 31 points.  This
+   sharpens the transition region and increases the stopband rejection.
+   Voicing coefficient calculation now compensates for the filter delay.
+
+ * The inverse filter now checks for zero with a small threshold, to
+   avoid precision problems on floating point underflow.
+
+ * Hex bitstream I/O is more robust.
+
+ * The command line parser has improved error checking and better handling
+   of options without values.
+
+Future work:
+
+ * The all-zero filter used in the two-stage synthesis procedure is replaced
+   by an adaptive postfilter ( A(z**-a) / (1-A(z**-b)) ), where a and b
+   are bandwidth widening constants.

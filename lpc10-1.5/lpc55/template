@@ -1,0 +1,46 @@
+* Comment block describing which arguments are inputs, and which
+* are outputs.
+
+* Input:
+*  A - 
+* Input/Output:
+*  B - 
+* Output:
+*  C - 
+
+* One of the following comment blocks:
+
+*
+* This subroutine has no local state.
+*
+
+* 
+* This subroutine maintains local state from one call to the next.  If
+* you want to switch to using a new audio stream for this filter, or
+* reinitialize its state for any other reason, call the ENTRY
+* INIT*
+*
+
+
+	SUBROUTINE/FUNCTION declaration
+
+*       INCLUDE statements for header files, if any.
+
+*       Arguments
+
+*       Function return value definitions
+
+*       Parameters/constants
+
+*       Local variables that need not be saved
+
+*       Local state
+
+*	This section contains local variables whose values should be
+*	saved from one call to the next.  They should all have SAVE
+*	statments.  They should all have initial values specified with
+*	DATA statements, or a comment explaining why the variable will
+*	be initialized before it is used.  It should be possible to
+*	restore these initial values with a call to an entry whose
+*	name is the same as the subroutine's, with "INIT" prepended to
+*	it.

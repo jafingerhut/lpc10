@@ -1,0 +1,56 @@
+Sun Jul  7 15:22:59 CDT 1996
+Andy Fingerhut (jaf@arl.wustl.edu)
+
+dam9.spd is a sample input file for the LPC-10 speech coder.
+dam9-out.spd is the result after being compressed and then
+decompressed on a Sun Sparc machine.  I've gotten results that sound
+the same to me, although many samples had different values, from an
+Intel 486 machine running Linux.
+
+Note that both of these files contain 16 bit samples, and each 16 bit
+sample has the most significant byte first, i.e., big-endian order.
+This works fine for big-endian machines, like Sun Sparcs.
+
+For Intel machines, the nuke and unnuke programs that are part of this
+distribution expect little-endian order, i.e., the least significant
+byte of each sample should come first.  These files can be converted
+to such a format with the GNU "dd" program, as shown below.  Non-GNU
+versions of "dd" might work as well.
+
+dd conv=swab < dam9.spd > dam9-littlendian.spd
+
+dam9.bits is the the output of the nuke program that I get when running
+the following command line:
+
+nuke < dam9.spf > dam9.bits
+
+dam9-out.spd is the of unnuke for the command line:
+
+unnuke < dam9.bits > dam9-out.spd
+
+
+
+The .spd files here can be converted using the 'sox' application into
+other audio formats.  For example, on a big-endian machine like a
+PowerPC Mac, you can use this:
+
+# -t raw: raw input file format
+# -r 8000: sample rate is 8000 Hertz
+# -s: sample format is signed linear
+# -w: sample data size is 16-bit words
+# -c 1: 1 sound channel, i.e. mono
+
+sox -t raw -r 8000 -s -w -c 1 dam9.spd dam9.aiff
+sox -t raw -r 8000 -s -w -c 1 dam9-out.spd dam9-out.aiff
+
+
+sox josh-the-psalm-of-life.wav -t raw -r 8000 -s -w -c 1 josh-the-psalm-of-life.spd
+nuke < josh-the-psalm-of-life.spd > josh-the-psalm-of-life.bits
+unnuke < josh-the-psalm-of-life.bits > josh-the-psalm-of-life-out.spd
+sox -t raw -r 8000 -s -w -c 1 josh-the-psalm-of-life-out.spd josh-the-psalm-of-life-out.aiff
+
+
+sox owen-the-germ.wav -t raw -r 8000 -s -w -c 1 owen-the-germ.spd
+nuke < owen-the-germ.spd > owen-the-germ.bits
+unnuke < owen-the-germ.bits > owen-the-germ-out.spd
+sox -t raw -r 8000 -s -w -c 1 owen-the-germ-out.spd owen-the-germ-out.aiff

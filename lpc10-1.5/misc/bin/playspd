@@ -1,0 +1,4 @@
+#! /bin/sh
+INSTALL_DIR=$HOME/lpc/bin
+#cat 8khz-16bit-1channel-sun-au-header $* | play -
+/pkg/gnu/bin/cat $INSTALL_DIR/8khz-16bit-1channel-sun-au-header $* | /pkg/local/bin/play -

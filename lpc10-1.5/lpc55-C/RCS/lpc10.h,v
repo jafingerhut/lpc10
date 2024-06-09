@@ -1,0 +1,59 @@
+head	1.1;
+access;
+symbols;
+locks
+	jaf:1.1; strict;
+comment	@ * @;
+
+
+1.1
+date	96.08.19.22.47.31;	author jaf;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@/*
+
+$Log$
+
+*/
+
+
+#define LPC10_SAMPLES_PER_FRAME 180
+#define LPC10_BITS_IN_COMPRESSED_FRAME 54
+
+
+/*
+
+  The "#if defined"'s in this file are by no means intended to be
+  complete.  They are what Nautilus uses, which has been successfully
+  compiled under DOS with the Microsoft C compiler, and under a few
+  versions of Unix with GNU C compiler.
+
+ */
+
+#if defined(unix)
+typedef short		INT16;
+typedef int		INT32;
+#endif
+
+
+#if defined(__MSDOS__) || defined(MSDOS)
+typedef int		INT16;
+typedef long		INT32;
+#endif
+
+
+int lpcini_(void);
+int lpcenc_(float *speech, INT32 *bits);
+int lpcdec_(INT32 *bits, float *speech);
+@

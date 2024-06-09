@@ -1,0 +1,3 @@
+#! /bin/sh
+INSTALL_DIR=$HOME/lpc/bin
+/pkg/gnu/bin/cat $INSTALL_DIR/8khz-8bit-mulaw-1channel-sun-au-header $* | /pkg/local/bin/play -

@@ -1,0 +1,93 @@
+######################################################################
+# 
+# Pattern rules for using f2c and cc as a Fortran compiler, with
+# optional patch files for the automatically converted C programs.
+# 
+######################################################################
+
+# I could just use the fort77 script to automatically run f2c for me,
+# and then run the C compiler on the result, but I would like to be
+# able to convert files from .f to .c with f2c, and then possibly make
+# hand modifications to the .c files.  The following cancelling of the
+# built-in Fortran compilation rules, and replacing it with the rules
+# for converting Fortran to C, should let me do that.
+
+# Of course, this leaves open the possibility that I make hand
+# modifications to a C file, and then make modifications to the
+# Fortran file from which it was created.  The next run of make would
+# overwrite any hand modifications made to the C file.  To overcome
+# this, I might want to consider making hand modifications to C files
+# and save them as "patches" to the automatically created C file, so
+# that future conversions of the Fortran to C might automatically have
+# the patch applied to them, assuming that the resulting converted C
+# file is reasonably close to the one that was patched originally.
+
+# To implement the latter more sophisticated method, I'll probably
+# want to define a new suffix for the patch files (".cpatch",
+# perhaps?), and write rules for creating .c files from raw f2c output
+# and a patch file.  If no patch file exists, the .c file should be
+# the same as the raw f2c output.  I'll probably want to define a new
+# suffix for the unmodified f2c output file as well (perhaps ".f2c").
+
+# Cancel the built-in rule for compiling Fortran files
+
+%.o : %.f
+
+# The rule for creating .f2c files from .f files.  It uses file
+# redirection, because f2c would otherwise create a .c file.
+
+F2C=f2c
+F2CFLAGS=
+
+%.f2c : %.f
+	$(F2C) $(F2CFLAGS) $(F2CFLAGS_CMDLINE) < $< > $@
+
+# The rule for creating a .c file from a .f2c file, and possibly a
+# .f2cpatch file.  If no .f2cpatch file exists, just copy the .f2c
+# file to the .c file.
+
+# I don't know yet if the following rule will work as I want it to,
+# which is to run the %.f2cpatch file through the patch program.  I'll
+# test it.
+
+# In my testing, I found out that one way that seems to work is this.
+
+# Create the .c file output of f2c, say foo.c.  Copy it to a new file
+# named something like foo-hand-modified.c.  Make modifications to
+# that new file.  Then create the patch file with a command like "diff
+# -c foo.c foo-hand-modified.c > foo.f2cpatch".  Then rename the
+# foo-hand-modified.c file to something else, e.g.,
+# "foo-hand-modified.c.bak", because otherwise when the program patch
+# is run, it will see both the foo.c and foo-hand-modified.c file
+# names at the beginning of the diff output, and complain that it
+# thinks it detected a patch that you are attempting to apply in
+# reverse.  This might be because at that time, foo.c is more recent
+# than foo-hand-modified.c.
+
+PATCH=patch
+
+%.c : %.f2cpatch %.f2c
+	$(COPY) $(basename $@).f2c $@
+	$(PATCH) < $<
+
+# The following rule will prevent the intermediate .c file from being
+# deleted after they are compiled.  They should still be overwritten
+# if the .f file is updated and make is run again.
+
+# I'm going to comment it out for now, since I'm not currently using
+# the feature to patch .f2c files produced by f2c.
+
+# I'm putting it back in, because it is useful when using gdb with
+# source level tracing of the file.  Without this special rule, there
+# are no .c source files to see while tracing.
+
+.PRECIOUS : %.c
+
+# If there is no .f2cpatch file, then hopefully the following rule
+# will match instead.  Of course, it might not work that way, but I
+# guess we'll see.
+
+COPY=cp
+
+%.c : %.f2c
+	$(COPY) $< $@

@@ -1,0 +1,7 @@
+#! /bin/sh
+
+# Convert a file of 16 bit linear audio samples into a similar file
+# with a Sun audio file header, so that it can be played with the
+# command play.
+
+audioconvert -F -i rate=8000,channels=1,encoding=linear16,format=raw -f format=sun

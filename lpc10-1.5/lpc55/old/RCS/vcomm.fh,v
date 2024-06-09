@@ -1,0 +1,35 @@
+head	1.1;
+access;
+symbols;
+locks; strict;
+comment	@c @;
+
+
+1.1
+date	96.02.07.14.50.14;	author jaf;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@c $Log$
+
+c   Voicing coefficient and Linear Discriminant Analysis variables:
+c Max number of VDC's and VDC levels
+
+      integer maxvdc, mxvdcl
+      parameter (maxvdc = 10, mxvdcl = 10)
+
+c Actual number of VDC's and levels
+
+      integer nvdc, nvdcl
+      real vdc(maxvdc, mxvdcl), vdcl(mxvdcl)
+@

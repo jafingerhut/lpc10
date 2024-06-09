@@ -1,0 +1,18 @@
+#! /bin/sh
+
+# 
+# Mon Feb 12 16:04:22 CST 1996
+# Andy Fingerhut (jaf@arl.wustl.edu)
+# 
+# This script is merely a convenient way for me to avoid having to
+# remember the options to GNU od(1) necessary to display a file as a
+# sequence of 16 bit signed 2's complement numbers.
+# 
+
+od --format=d2 $*
+
+# This alternate version also prints out every byte as its ASCII
+# equivalent.  This could be useful for seeing strings in a .au
+# file header.
+
+# od --format=c --format=d2 $*

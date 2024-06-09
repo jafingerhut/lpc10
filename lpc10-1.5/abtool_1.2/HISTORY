@@ -1,0 +1,36 @@
+           A/B Tool  Revision history
+
+Still To Do:
+  Plot window.
+  Should use XView 3.2 file chooser instead of gfm.
+  Load/Save Segment boundaries.
+  Implement play command and other audio devices.
+
+Version 1.2  September 1993  dpk
+
+  Open files specified on command line after tool window is mapped
+  Set frame busy while opening files and computing energy
+  Add property option to hold audio device open or release it when idle
+    (when released, it allows other audio applications to run, but a
+     driver bug causes a loud click every time the audio device is opened)
+  Add property option to select other devices (play command, MTU or
+     DAT-Link), but no code to support them.
+  Align properties sheet below main window.
+  Add icon image.
+
+ Version 1.1  August 1993  dpk
+
+  Converted to Solaris 2, added some function prototypes.
+  Added "Audio..." button to spawn audiocontrol (or any other command,
+   as specified in properties sheet).
+  Added "Quit" button.
+  Changed "Play" button to "Stop" while files are playing.  This
+   immediately flushes the audio device and empties the request queue.
+  Fixed bug in play code that could write an odd number of bytes.
+   This hangs the DBRI driver in Solaris 2.2 when in 16 bit linear mode.
+  General rewrite of play event handler for robustness.
+
+Version 1.0  January 1993  dpk
+
+  Initial release for SunOS 4.1.2
+  Energy plot window not implemented.

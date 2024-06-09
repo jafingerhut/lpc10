@@ -1,0 +1,17 @@
+c $Log: config.fh,v $
+c Revision 1.3  1996/03/29  22:03:47  jaf
+c Removed definitions for any constants that were no longer used.
+c
+c Revision 1.2  1996/03/26  19:34:33  jaf
+c Added comments indicating which constants are not needed in an
+c application that uses the LPC-10 coder.
+c
+c Revision 1.1  1996/02/07  14:43:51  jaf
+c Initial revision
+c
+
+c   LPC Configuration parameters:
+c Frame size, Prediction order, Pitch period
+
+	integer MAXFRM, MAXORD, MAXPIT
+	parameter (MAXFRM = 180, MAXORD = 10, MAXPIT = 156)

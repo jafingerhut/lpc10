@@ -1,0 +1,434 @@
+head	1.5;
+access;
+symbols;
+locks; strict;
+comment	@* @;
+
+
+1.5
+date	96.03.26.19.35.35;	author jaf;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	96.03.19.18.03.22;	author jaf;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	96.03.19.17.38.32;	author jaf;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	96.03.13.16.32.17;	author jaf;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	96.02.07.14.45.14;	author jaf;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.5
+log
+@Commented out trace statements.
+@
+text
+@**********************************************************************
+*
+*	DYPTRK Version 52
+*
+* $Log: dyptrk.f,v $
+* Revision 1.4  1996/03/19  18:03:22  jaf
+* Replaced the initialization "DATA P/60*DEPTH*0/" with "DATA P/120*0/",
+* because apparently Fortran (or at least f2c) can't handle expressions
+* like that.
+*
+* Revision 1.3  1996/03/19  17:38:32  jaf
+* Added comments about the local variables that should be saved from one
+* invocation to the next.  None of them were given initial values in the
+* original code, but from my testing, it appears that initializing them
+* all to 0 works.
+*
+* Added entry INITDYPTRK to reinitialize these local variables.
+*
+* Revision 1.2  1996/03/13  16:32:17  jaf
+* Comments added explaining which of the local variables of this
+* subroutine need to be saved from one invocation to the next, and which
+* do not.
+*
+* WARNING!  Some of them that should are never given initial values in
+* this code.  Hopefully, Fortran 77 defines initial values for them, but
+* even so, giving them explicit initial values is preferable.
+*
+* Revision 1.1  1996/02/07 14:45:14  jaf
+* Initial revision
+*
+*
+**********************************************************************
+*
+*   Dynamic Pitch Tracker
+*
+* Input:
+*  AMDF   - Average Magnitude Difference Function array
+*           Indices 1 through LTAU read, and MINPTR
+*  LTAU   - Number of lags in AMDF
+*  MINPTR - Location of minimum AMDF value
+*  VOICE  - Voicing decision
+* Output:
+*  PITCH  - Smoothed pitch value, 2 frames delayed
+*  MIDX   - Initial estimate of current frame pitch
+* Compile time constant:
+*  DEPTH  - Number of frames to trace back
+* 
+* This subroutine maintains local state from one call to the next.  If
+* you want to switch to using a new audio stream for this filter, or
+* reinitialize its state for any other reason, call the ENTRY
+* INITDYPTRK.
+*
+
+	SUBROUTINE DYPTRK( AMDF, LTAU, MINPTR, VOICE, PITCH, MIDX )
+	INCLUDE 'contrl.fh'
+
+*       Arguments
+
+	INTEGER LTAU, MINPTR, VOICE, PITCH, MIDX
+	REAL AMDF(LTAU)
+
+*	Parameters/constants
+
+	INTEGER DEPTH
+	PARAMETER (DEPTH=2)
+
+*       Local variables that need not be saved
+
+*       Note that PATH is only used for debugging purposes, and can be
+*       removed.
+
+	REAL SBAR, MINSC, MAXSC, ALPHA
+	INTEGER PBAR, I, J, IPTR, PATH(DEPTH)
+
+
+*       Local state
+
+*       It would be a bit more "general" to define S(LTAU), if Fortran
+*       allows the argument of a function to be used as the dimension of
+*       a local array variable.
+
+*       IPOINT is always in the range 0 to DEPTH-1.
+
+*       WARNING!
+*       
+*       In the original version of this subroutine, IPOINT, ALPHAX,
+*       every element of S, and potentially any element of P with the
+*       second index value .NE. IPTR were read without being given
+*       initial values (all indices of P with second index equal to
+*       IPTR are all written before being read in this subroutine).
+*       
+*       From examining the code carefully, it appears that all of these
+*       should be saved from one invocation to the next.
+*       
+*       I've run lpcsim with the "-l 6" option to see all of the
+*       debugging information that is printed out by this subroutine
+*       below, and it appears that S, P, IPOINT, and ALPHAX are all
+*       initialized to 0 (these initial values would likely be different
+*       on different platforms, compilers, etc.).  Given that the output
+*       of the coder sounds reasonable, I'm going to initialize these
+*       variables to 0 explicitly.
+
+	REAL S(60)
+	INTEGER P(60,DEPTH), IPOINT
+	REAL ALPHAX
+
+	SAVE S, P, IPOINT
+	SAVE ALPHAX
+
+	DATA S/60*0./
+	DATA P/120*0/, IPOINT/0/
+	DATA ALPHAX/0./
+
+*   Calculate the confidence factor ALPHA, used as a threshold slope in
+*   SEESAW.  If unvoiced, set high slope so that every point in P array
+*   is marked as a potential pitch frequency.  A scaled up version (ALPHAX)
+*   is used to maintain arithmetic precision.
+
+	IF( VOICE .EQ. 1 ) THEN
+	   ALPHAX = .75*ALPHAX + AMDF(MINPTR)/2.
+	ELSE
+	   ALPHAX = (63./64.)*ALPHAX
+	END IF
+	ALPHA = ALPHAX/16
+	IF( VOICE .EQ. 0 .AND. ALPHAX .LT. 128 ) ALPHA = 8
+
+*  SEESAW: Construct a pitch pointer array and intermediate winner function
+*   Left to right pass:
+
+	IPTR = IPOINT+1
+	P(1,IPTR) = 1
+	I = 1
+	PBAR = 1
+	SBAR = S(1)
+	DO I = 1,LTAU 
+	   SBAR = SBAR + ALPHA
+	   IF (SBAR .LT. S(I)) THEN
+	      S(I) = SBAR
+	      P(I,IPTR) = PBAR
+	   ELSE
+	      SBAR = S(I)
+	      P(I,IPTR) = I
+	      PBAR = I
+	   END IF
+	END DO
+
+*   Right to left pass:
+
+	I = PBAR-1
+	SBAR = S(I+1)
+	DO WHILE (I .GE. 1)
+	   SBAR = SBAR + ALPHA
+	   IF (SBAR .LT. S(I)) THEN
+	      S(I) = SBAR
+	      P(I,IPTR) = PBAR
+	   ELSE
+	      PBAR = P(I,IPTR)
+	      I = PBAR
+	      SBAR = S(I)
+	   END IF
+	   I = I-1
+	END DO
+
+*   Update S using AMDF
+*   Find maximum, minimum, and location of minimum
+
+	S(1) = S(1) + AMDF(1)/2
+	MINSC = S(1)
+	MAXSC = MINSC
+	MIDX = 1
+	DO I = 2,LTAU
+	   S(I) = S(I) + AMDF(I)/2
+	   IF (S(I) .GT. MAXSC) MAXSC = S(I)
+	   IF (S(I) .LT. MINSC) THEN
+	      MIDX = I
+	      MINSC = S(I)
+	   END IF
+	END DO
+
+*   Subtract MINSC from S to prevent overflow
+
+	DO I = 1,LTAU
+	   S(I) = S(I) - MINSC
+	END DO
+	MAXSC = MAXSC - MINSC
+
+*   Use higher octave pitch if significant null there
+
+	J = 0
+	DO I = 20, 40, 10
+	   IF (MIDX .GT. I) THEN
+	      IF (S(MIDX-I) .LT. MAXSC/4) J = I
+	   END IF
+	END DO
+	MIDX = MIDX - J
+
+*   TRACE: look back two frames to find minimum cost pitch estimate
+
+	J = IPOINT
+	PITCH = MIDX
+	DO I = 1,DEPTH
+	   J = MOD(J,DEPTH) + 1
+	   PITCH = P(PITCH,J)
+	   PATH(I) = PITCH
+	END DO
+*       
+*       The following statement subtracts one from IPOINT, mod DEPTH.  I
+*       think the author chose to add DEPTH-1, instead of subtracting 1,
+*       because then it will work even if MOD doesn't work as desired on
+*       negative arguments.
+*       
+	IPOINT = MOD(IPOINT+DEPTH-1,DEPTH)
+
+*   Print test data
+
+*	IF (LISTL .GE. 3) THEN
+*	   IF (LISTL .GE. 6) THEN
+*	      WRITE(FDEBUG,970) 'DYPTRACK array (P):',P
+*	      WRITE(FDEBUG,980) 'Pitch Winner Function (S):',S
+*	   END IF
+*	   WRITE(FDEBUG,950) IPOINT, MIDX, ALPHA, PITCH, PATH
+*950	   FORMAT(' Pitch: IPOINT  MIDX  ALPHA   PITCH     PATH'/
+*     1             5X,2I7,F7.0,I7,5X,10I4/)
+*970	   FORMAT(1X,A,100(/1X,20I6))
+*980	   FORMAT(1X,A,100(/1X,10F12.1))
+*	END IF
+
+	RETURN
+
+
+	ENTRY INITDYPTRK ()
+
+	DO I = 1,60
+	   S(I) = 0.
+	   DO J = 1,DEPTH
+	      P(I,J) = 0
+	   END DO
+	END DO
+	IPOINT = 0
+	ALPHAX = 0.
+
+	RETURN
+
+	END
+@
+
+
+1.4
+log
+@Replaced the initialization "DATA P/60*DEPTH*0/" with "DATA P/120*0/",
+because apparently Fortran (or at least f2c) can't handle expressions
+like that.
+@
+text
+@d6 5
+d216 11
+a226 11
+	IF (LISTL .GE. 3) THEN
+	   IF (LISTL .GE. 6) THEN
+	      WRITE(FDEBUG,970) 'DYPTRACK array (P):',P
+	      WRITE(FDEBUG,980) 'Pitch Winner Function (S):',S
+	   END IF
+	   WRITE(FDEBUG,950) IPOINT, MIDX, ALPHA, PITCH, PATH
+950	   FORMAT(' Pitch: IPOINT  MIDX  ALPHA   PITCH     PATH'/
+     1             5X,2I7,F7.0,I7,5X,10I4/)
+970	   FORMAT(1X,A,100(/1X,20I6))
+980	   FORMAT(1X,A,100(/1X,10F12.1))
+	END IF
+@
+
+
+1.3
+log
+@Added comments about the local variables that should be saved from one
+invocation to the next.  None of them were given initial values in the
+original code, but from my testing, it appears that initializing them
+all to 0 works.
+
+Added entry INITDYPTRK to reinitialize these local variables.
+@
+text
+@d6 8
+a78 4
+	REAL S(60)
+	INTEGER P(60,DEPTH), IPOINT
+	REAL ALPHAX
+
+d98 4
+d106 1
+a106 1
+	DATA P/60*DEPTH*0/, IPOINT/0/
+@
+
+
+1.2
+log
+@Comments added explaining which of the local variables of this
+subroutine need to be saved from one invocation to the next, and which
+do not.
+
+WARNING!  Some of them that should are never given initial values in
+this code.  Hopefully, Fortran 77 defines initial values for them, but
+even so, giving them explicit initial values is preferable.
+@
+text
+@d6 9
+d23 16
+a38 10
+*  Inputs:
+*   AMDF   - Average Magnitude Difference Function array
+*   LTAU   - Number of lags in AMDF
+*   MINPTR - Location of minimum AMDF value
+*   VOICE  - Voicing decision
+*  Outputs:
+*   PITCH  - Smoothed pitch value, 2 frames delayed
+*   MIDX   - Initial estimate of current frame pitch
+*  Compile time constant:
+*   DEPTH  - Number of frames to trace back
+d44 1
+a44 1
+*       Parameters
+d49 2
+d54 10
+a63 1
+*       Local variables
+d69 4
+a72 2
+	REAL S(60), SBAR, MINSC, MAXSC, ALPHA
+	INTEGER P(60,DEPTH), PBAR, I, J, IPOINT, IPTR, PATH(DEPTH)
+a74 6
+*       NO SAVE NECESSARY  SBAR, MINSC, MAXSC, ALPHA
+*       NO SAVE NECESSARY  PBAR, I, J, IPTR, PATH
+
+*       Note that PATH is only used for debugging purposes, and can be
+*       removed.
+
+d77 5
+a81 4
+*       Elements of S are used in this subroutine without ever giving
+*       them an initial value.  I believe that the state of S should be
+*       saved from one invocation of this function to the next, but that
+*       is not yet clear to me.
+d83 2
+a84 1
+*       IPOINT and ALPHAX are used without ever being initialized.
+d86 7
+a92 3
+*       It is not yet clear to me whether array P should be saved from
+*       one invocation to the next.  It may be that some of its elements
+*       are read without ever being initialized.
+d97 4
+d112 1
+a112 1
+	IF( VOICE.EQ.0 .AND. ALPHAX.LT.128 ) ALPHA = 8
+d124 1
+a124 1
+	   IF (SBAR.LT.S(I)) THEN
+d138 1
+a138 1
+	DO WHILE (I.GE.1)
+d140 1
+a140 1
+	   IF (SBAR.LT.S(I)) THEN
+d160 5
+a164 3
+	   IF(S(I).GT.MAXSC) MAXSC = S(I)
+	   IF(S(I).LT.MINSC) MIDX = I
+	   IF(S(I).LT.MINSC) MINSC = S(I)
+d193 6
+d203 2
+a204 2
+	IF(LISTL.GE.3) THEN
+	   IF(LISTL.GE.6) THEN
+d216 15
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d5 4
+a8 1
+* $Log$
+d28 3
+d32 2
+a33 1
+	REAL AMDF(LTAU), S(60), SBAR, MINSC, MAXSC, ALPHA
+d36 8
+d46 22
+@
