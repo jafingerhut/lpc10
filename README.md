@@ -80,7 +80,7 @@ was written by others.
 
 I started using RCS (Git had not yet been developed) to maintain my
 personal modifications to the files, and according to the time stamps
-in a later version I have, most of those modifications were made from
+in a later version I have, all of those modifications were made from
 February through October in 1996.
 
 I published a file named `lpc10-1.5.tar.gz` on my personal web page at
