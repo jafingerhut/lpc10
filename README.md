@@ -35,10 +35,14 @@ Tested on the following systems:
 + Ubuntu 24.04 x86_64 with GCC 13.2.0
 + Ubuntu 20.04 aarch64 with GCC 9.4.0
   + Only small differences between expected vs actual test output for
-    these aarch64 processor tests, probably due to slightly different
-    floating-point instruction roundoffs.
+    these Ubuntu aarch64 processor tests, probably due to slightly
+    different floating-point instruction roundoffs.
 + Ubuntu 22.04 aarch64 with GCC 11.4.0
 + Ubuntu 24.04 aarch64 with GCC 13.2.0
++ macOS 12.7 x86_64 with clang 14.0.0
++ macOS 13.6 arm64 with clang 15.0.0
+  + Slightly bigger differences between expected vs actual test output
+    for this macOS arm64 processor test, but still very close to it.
 
 ```bash
 git clone https://github.com/jafingerhut/lpc10
