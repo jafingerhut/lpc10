@@ -67,6 +67,7 @@ sox:      SoX v14.4.2
 # -r 8000: sample rate is 8000 Hertz
 # -e signed-integer: sample format is signed integer
 # -b 16: sample size is 16 bits
+# --endian: specify big or little endian byte order
 # -c 1: 1 sound channel, i.e. mono
 
 SPD_SOX_OPTS="-t raw -r 8000 -e signed-integer -b 16 -c 1 --endian little"
