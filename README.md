@@ -79,9 +79,9 @@ occurrences of the word "Little" would be replaced with "Big".
 ```
 $ ./run-make.sh
 Endianness is: Little
-../lpc55-C/nuke < dam9.Little-Endian.spd > dam9-compressed.bits
-../lpc55-C/unnuke < dam9-compressed.bits > dam9-uncompressed.Little-Endian.spd
-../lpc55-C/compare-raw-audio dam9-out.Little-Endian.spd dam9-uncompressed.Little-Endian.spd
+../lpc55-C/nuke < dam9.little-endian.spd > dam9-compressed.bits
+../lpc55-C/unnuke < dam9-compressed.bits > dam9-uncompressed.little-endian.spd
+../lpc55-C/compare-raw-audio dam9-out.little-endian.spd dam9-uncompressed.little-endian.spd
 Delta   Number of samples that differed by delta from file 1 to 2
 ------  ----------------------------------------
      0  171900
