@@ -31,6 +31,7 @@ this repository was derived appears to have been published in October
 Tested on the following systems:
 
 + Ubuntu 20.04 aarch64 with GCC 9.4.0
++ Ubuntu 24.04 x86_64 with GCC 13.2.0
 
 ```bash
 git clone https://github.com/jafingerhut/lpc10

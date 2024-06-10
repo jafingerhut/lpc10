@@ -94,13 +94,16 @@ main(int argc, char *argv[])
         printf("File '%s' is at least %u samples longer than file '%s'\n",
                fname1, n1 - n2, fname2);
     }
+    printf("Delta   Number of samples that differed by delta from file 1 to 2\n");
+    printf("------  ----------------------------------------\n");
     for (delta = -65535; delta <= 65535; delta += 1) {
         if (num_samples_with_delta[delta - MIN_POSSIBLE_DELTA] != 0) {
             printf("%6d  %u\n", delta,
                    num_samples_with_delta[delta - MIN_POSSIBLE_DELTA]);
         }
     }
-    printf("delta min=%d  max=%d  average=%.1f\n",
+    printf("------  ----------------------------------------\n");
+    printf("delta min=%d  max=%d  average=%.6f\n",
            min_delta, max_delta, ((double) delta_sum) / num_samples_compared);
     exit(0);
 }
