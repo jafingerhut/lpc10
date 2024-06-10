@@ -31,6 +31,7 @@ this repository was derived appears to have been published in October
 Tested on the following systems:
 
 + Ubuntu 20.04 aarch64 with GCC 9.4.0
++ Ubuntu 22.04 x86_64 with GCC 11.4.0
 + Ubuntu 24.04 x86_64 with GCC 13.2.0
 
 ```bash
@@ -52,7 +53,31 @@ directory `lpc10-1.6/lpc55-C`:
 
 # Testing the code
 
-TODO
+Run these commands, after a successful build as described earlier:
+
+```bash
+cd lpc10/lpc10-1.6/data
+./run-make.sh
+```
+
+Here is what "perfect" output looks like on a little-endian system.
+It is OK if some decompressed samples have a small delta
+(i.e. difference) with the expected decompressed audio file.  On a
+big-endian system, perfect output looks the same, except all
+occurrences of the word "Little" would be replaced with "Big".
+
+```
+$ ./run-make.sh
+Endianness is: Little
+../lpc55-C/nuke < dam9.Little-Endian.spd > dam9-compressed.bits
+../lpc55-C/unnuke < dam9-compressed.bits > dam9-uncompressed.Little-Endian.spd
+../lpc55-C/compare-raw-audio dam9-out.Little-Endian.spd dam9-uncompressed.Little-Endian.spd
+Delta   Number of samples that differed by delta from file 1 to 2
+------  ----------------------------------------
+     0  171900
+------  ----------------------------------------
+delta min=0  max=0  average=0.0
+```
 
 
 # History, copyright, and license
