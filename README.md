@@ -74,11 +74,11 @@ Here is what "perfect" output looks like on a little-endian system.
 It is OK if some decompressed samples have a small delta
 (i.e. difference) with the expected decompressed audio file.  On a
 big-endian system, perfect output looks the same, except all
-occurrences of the word "Little" would be replaced with "Big".
+occurrences of the word "little" would be replaced with "big".
 
 ```
 $ ./run-make.sh
-Endianness is: Little
+Endianness is: little
 ../lpc55-C/nuke < dam9.little-endian.spd > dam9-compressed.bits
 ../lpc55-C/unnuke < dam9-compressed.bits > dam9-uncompressed.little-endian.spd
 ../lpc55-C/compare-raw-audio dam9-out.little-endian.spd dam9-uncompressed.little-endian.spd
