@@ -6,7 +6,7 @@ codec](https://en.wikipedia.org/wiki/Category:Speech_codecs) called
 LPC-10.  It can compress human speech audio to 2400 bits per second.
 Note that speech codecs are specialized for compressing audio
 containing human speech, and is not intended to be used for arbitrary
-audio signals.
+audio signals (e.g. music).
 
 The code has no dependencies on other libraries.  The compressor takes
 audio waveform data as input and produces compressed data as output,
@@ -36,7 +36,7 @@ Tested on the following systems:
 + Ubuntu 20.04 aarch64 with GCC 9.4.0
   + Only small differences between expected vs actual test output for
     these Ubuntu aarch64 processor tests, probably due to slightly
-    different floating-point instruction roundoffs.
+    different floating-point instruction round-offs.
 + Ubuntu 22.04 aarch64 with GCC 11.4.0
 + Ubuntu 24.04 aarch64 with GCC 13.2.0
 + macOS 12.7 x86_64 with clang 14.0.0
@@ -92,13 +92,54 @@ delta min=0  max=0  average=0.0
 
 # History, copyright, and license
 
-Author of this section of the article: Andy Fingerhut
+Author of this section of the article: Andy Fingerhut (full legal name
+John Andrew Fingerhut)
 
-Because of the history of this implementation, the copyright and
-license status is still not completely clear to me, for reasons
-discussed further below.  It _might_ be in the public domain, but if
-the legal answer matters to you in any significant way, I suggest
-consulting an attorney who specialies in intellectual property law.
+I am not an intellectual property lawyer.  I only know as much about
+it as any software developer who has spent a couple weeks total of
+their lives thinking about copyright, patents, and software licenses.
+
+The original README in the root directory of the extracted
+[`lpc10-1.0.tar.gz`](original-code/lpc10-1.0.tar.gz) archive begins as
+follows:
+
+```
+              U.S. Department of Defense
+             LPC-10 2400 bps Voice Coder
+                   Release 1.0
+                   October 1993
+```
+
+The only place that the word "copyright" or "license" appears anywhere
+in that original archive is "Copyright 1993, U.S. Department of
+Defense", but that is in the directory `abtool_1.2`, which is a
+utility program for comparing two audio waveforms, not the LPC-10
+speech codec, which is in a separate directory.
+
+Others have told me: "Works of the US may be considered public domain
+(they are technically uncopyrightable)."
+
+I have also been told: "If the translation is made with a grain of
+creativity, its authors may hold copyright on it independently,
+therefore their separate permission is needed for the work to be
+free."
+
+If the above is all correct, then according to the enhancements I have
+made to the original code described below, I, John Andrew Fingerhut,
+claim copyright on the C implementation in the directories
+`lpc10-1.5/lpc55-C` and `lpc10-1.6/lpc55-C` of this repository, and
+release it under the following license:
+
++ https://spdx.org/licenses/BSD-3-Clause.html
++ SPDX Full name: BSD 3-Clause "New" or "Revised" License
++ SPDX Identifier: name BSD-3-Clause
+
+See the file [`LICENSE`](LICENSE) for a full copy of the license.
+
+Note: If the legal answer matters to you in any significant way,
+e.g. you are planning to include this code in a commercial product and
+sell it for money, I suggest consulting an attorney who specializes in
+intellectual property law.
 
 WARNING: Please, software developers, take this as a warning story
 that before you invest a lot of time in a project, you give some
@@ -106,6 +147,8 @@ thought to the legal status of any code you are modifying.  Thankfully
 I did not spend too much of my life modifying this code, nor answering
 too many questions about it later, but questions have arisen every 5
 years or so from people interested in this code.
+
+History:
 
 In 1995 or 1996, I had become interested in a program called
 [Nautilus](https://en.wikipedia.org/wiki/Nautilus_(secure_telephone)),
@@ -162,14 +205,6 @@ I endeavored during all of my changes not to change any of the
 compression algorithms, nor did I ever come to truly understand how
 they worked.
 
-After publishing the code, occasionally someone would ask me about the
-copyright and license that the code was released under.  I always
-answered where I obtained the original code, and as far as I could
-tell, there was no copyright notice or license in the original code
-(please check for yourself in the file `lpc10-1.0.tar.gz` if you are
-curious), and I did not wish to restrict the code's use any more than
-the original was.
-
 + Internet Archive - https://en.wikipedia.org/wiki/Internet_Archive
 + Nautilus secure telephone application -
   https://en.wikipedia.org/wiki/Nautilus_(secure_telephone)
@@ -191,13 +226,8 @@ would appreciate you contacting me.
 
 If someone has advice that is quick and easy to follow on learning the
 legal status of the original code I started from, and/or to make it
-clear to others what copyright and license my modifications are
-released under, I would be curious to know that.  I am perfectly happy
-to say any of the following, if it is true or can easily be made true:
-
-+ Public domain, or copyright by "insert-name-here"
-+ Some permissive open source license such as BSD, MIT, Apache 2, etc.
-  I do not have interest in releasing it under any variation of the GPL.
+even more clear to others what copyright and license my modifications
+are released under, I would be curious to know that.
 
 
 # Uses of this code
@@ -207,7 +237,11 @@ It is used in the Nautilus secure telephone application:
 + https://en.wikipedia.org/wiki/Nautilus_(secure_telephone)
 
 A slightly modified version of the C code is included in the SoX
-application, with source in the `lpc10` directory of its Git repo:
+application, with source in the `lpc10` directory of its Git
+repository:
 
 + https://en.wikipedia.org/wiki/SoX
 + https://sourceforge.net/p/sox/code/ci/master/tree/
+
+I believe it has been used in some other software projects, but I am
+not attempting to give an exhaustive list here.
